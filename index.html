@@ -3272,8 +3272,29 @@ async function initFirebase(){
       if(remote._ts && remote._ts > (DB._ts||0)){
         // ✅ FIX: preserva a sessão LOCAL — nunca sobrescreve com sessão remota
         const localSession = DB.session;
+
+        // ✅ FIX: se o usuário local está criando personagem, preserva os dados locais do player
+        // para não perder digitação (nome, atributos) por causa de sync remoto
+        const localPlayersMap = {};
+        for(const lp of (DB.players||[])){
+          if(!lp.characterCreated) localPlayersMap[lp.id] = lp;
+        }
+
         DB = remote;
         DB.session = localSession; // restaura sessão do usuário atual
+
+        // Restaura players que estavam em criação local
+        for(const rp of (DB.players||[])){
+          if(localPlayersMap[rp.id]){
+            // só preserva se o local é mais recente (tem log mais novo)
+            const localTs = (localPlayersMap[rp.id].log?.[0]?.ts) || 0;
+            const remoteTs = (rp.log?.[0]?.ts) || 0;
+            if(localTs >= remoteTs){
+              Object.assign(rp, localPlayersMap[rp.id]);
+            }
+          }
+        }
+
         localStorage.setItem(KEY, JSON.stringify(DB));
         // ✅ FIX: só re-renderiza dados (KPIs, inventário, etc), nunca muda de tela
         renderRemoteUpdate();
@@ -3962,6 +3983,17 @@ function renderChosenDisadvantages(player){
 
 /* ========================= CHARACTER CREATOR ========================= */
 function renderCharacterCreator(player){
+  // ✅ FIX: antes de reconstruir o HTML, captura o nome digitado no input (se existir no DOM)
+  // Evita que o nome suma quando o player clica num botão de atributo enquanto ainda digitava
+  const _existingNameInput = document.getElementById("charName");
+  if(_existingNameInput && _existingNameInput.value.trim()){
+    const _p2 = getPlayer(player.id);
+    if(_p2 && _p2.character.charName !== _existingNameInput.value){
+      _p2.character.charName = _existingNameInput.value;
+      player.character.charName = _existingNameInput.value;
+    }
+  }
+
   const main = $("mainPanel");
   const c = player.character;
   if(!c.attrs) c.attrs = mkAttrsZero();
@@ -4734,8 +4766,51 @@ function openSkillTreeModal(playerId){
   });
   // Re-bind btnReset (now inside settings panel)
   document.getElementById("btnReset")?.addEventListener("click",()=>{
-    if(confirm("Apagar todos os dados? Isso não pode ser desfeito.")){
-      localStorage.removeItem(KEY); DB=loadDB(); render();
+    if(confirm("Resetar dados de jogo?\n\nIsso apaga personagens, inventários, NPCs, bestiário, loja, etc.\n\nOs LOGINS (usuários e senhas) são preservados — ninguém perde acesso.")){
+      // ✅ FIX: preserva users, players (logins), session e races/classes/disadvantages
+      // Só reseta dados de jogo (inventários, personagens criados, logs, etc.)
+      const currentSession = DB.session;
+      const currentUsers = DB.users;
+      // Reseta cada player mas mantém o login (username, id, playerId)
+      const resetPlayers = DB.players.map(p => {
+        const base = defaultDB();
+        const basePl = base.players[0] || {};
+        return {
+          id: p.id,
+          username: p.username,
+          xp: 0,
+          inventory: [],
+          characterCreated: false,
+          character: {
+            avatarDataUrl: "",
+            charName: p.character?.charName || p.username,
+            preferredRaceId: basePl.character?.preferredRaceId || "",
+            classId: basePl.character?.classId || "",
+            finalRaceId: "",
+            attrs: mkAttrsZero(),
+            skills: mkSkillsZero(),
+            disadvantages: [],
+            pools: { attrBase:10, skillPicksBase:8 },
+            levelSeen:1, levelAttrBonus:0, levelSkillBonus:0, abilities:[],
+            currentStats: { vida:0, defesa:0, velocidade:0, mana:0 },
+            buffs:[], conditions:[], reputacao:50, fama:0, diary:[], npcs:[],
+            equipados:{cabeca:null,torso:null,pernas:null,maos:null,pe:null,anel1:null,anel2:null,amuleto:null,armaPrincipal:null,armaSecundaria:null},
+            mapPins:[], rollLog:[], bonusesApplied:false
+          },
+          log: [{ ts: Date.now(), text: "Dados resetados." }]
+        };
+      });
+      const freshDB = defaultDB();
+      DB = {
+        ...freshDB,
+        users: currentUsers,
+        players: resetPlayers,
+        session: currentSession,
+      };
+      localStorage.setItem(KEY, JSON.stringify(DB));
+      saveDB(DB);
+      render();
+      toast("✅ Dados resetados! Logins preservados.", true);
     }
   });
 })();
