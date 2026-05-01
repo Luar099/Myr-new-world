@@ -3147,9 +3147,13 @@ async function initFirebase(){
       if(!remote) return;
       // Só aplica se versão remota for mais nova que a local
       if(remote._ts && remote._ts > (DB._ts||0)){
+        // ✅ FIX: preserva a sessão LOCAL — nunca sobrescreve com sessão remota
+        const localSession = DB.session;
         DB = remote;
+        DB.session = localSession; // restaura sessão do usuário atual
         localStorage.setItem(KEY, JSON.stringify(DB));
-        render();
+        // ✅ FIX: só re-renderiza dados (KPIs, inventário, etc), nunca muda de tela
+        renderRemoteUpdate();
       }
     });
 
@@ -3169,15 +3173,37 @@ function saveDB(db){
   _fbSyncTimeout = setTimeout(async()=>{
     try{
       const { ref, set } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-      db._ts = Date.now();
+      // ✅ FIX: nunca salva a sessão no Firebase — sessão é sempre local/por dispositivo
+      const dbToSave = { ...db, session: { userId: null }, _ts: Date.now() };
+      db._ts = dbToSave._ts;
       _fbIgnoreNext = true;
-      await set(ref(_fbDb,"myr_db"), db);
+      await set(ref(_fbDb,"myr_db"), dbToSave);
     }catch(e){ console.warn("Firebase save error:", e); }
   }, 800);
 }
 
 // Inicializa Firebase quando o site carrega
 initFirebase();
+
+/* ========================= RENDER REMOTO (sem mudar tela) ========================= */
+// Chamado quando o Firebase envia update de outro usuario.
+// Atualiza dados sem forcar navegacao ou troca de tela.
+function renderRemoteUpdate(){
+  const user = findUserBySession();
+  if(!user) return;
+  if(user.role === 'master'){
+    renderSideRoster();
+    renderSideLog();
+    const content = document.getElementById('masterPanelContent');
+    if(content) setMasterTab(UI.masterTab || 'mPlayers');
+  } else {
+    const pid = user.playerId || (DB.players.find(p=>p.username===user.username)?.id);
+    if(!pid) return;
+    const p = getPlayer(pid);
+    if(!p || !p.characterCreated) return;
+    updateKpiBarsLive(p);
+  }
+}
 
 function fileToDataURL(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
 
