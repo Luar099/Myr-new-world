@@ -229,6 +229,11 @@
     .ok{color:var(--ok);font-weight:700}
     .bad{color:var(--bad);font-weight:700}
     .gold{color:var(--goldLight);}
+    .secTitle{
+      font-family:'Cinzel',serif;font-weight:900;font-size:13px;
+      color:var(--goldLight);letter-spacing:1px;text-transform:uppercase;
+      margin-bottom:8px;display:block;
+    }
 
     /* ========================= TABS DO CRIADOR ========================= */
     .tabs{display:flex;gap:6px;flex-wrap:wrap}
@@ -869,7 +874,7 @@
     .bookTitle{
       font-family:'Cinzel',serif;font-weight:900;
       font-size:clamp(42px,8vw,72px);
-      color:var(--goldL);
+      color:var(--goldLight);
       letter-spacing:8px;
       text-shadow:
         0 0 40px rgba(200,149,42,.6),
@@ -918,7 +923,7 @@
       margin-top:28px;padding:12px 32px;
       background:linear-gradient(145deg,#6e1212,#8b1a1a);
       border:1px solid rgba(200,149,42,.5);border-radius:2px;
-      color:var(--goldL);font-family:'Cinzel',serif;font-weight:900;
+      color:var(--goldLight);font-family:'Cinzel',serif;font-weight:900;
       font-size:13px;letter-spacing:2px;cursor:pointer;
       box-shadow:0 4px 20px rgba(139,26,26,.5);
       transition:all .2s;position:relative;z-index:1;
@@ -1290,7 +1295,7 @@ function loadDB(){
   try { return JSON.parse(raw); }
   catch { const db = defaultDB(); localStorage.setItem(KEY, JSON.stringify(db)); return db; }
 }
-function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
+// saveDB é definida no bloco Firebase abaixo (com suporte a sync em nuvem)
 
 let DB = loadDB();
 
@@ -1948,7 +1953,7 @@ function renderMasterPlayers(container){
     div.style.cssText="border:1px solid rgba(180,140,60,.18);border-radius:2px;padding:13px;background:rgba(6,4,2,.6)";
     div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div>
-        <div style="font-weight:700;font-family:'Cinzel',serif;font-size:14px;color:var(--goldL)">${escapeHTML(p.character.charName||p.username)}</div>
+        <div style="font-weight:700;font-family:'Cinzel',serif;font-size:14px;color:var(--goldLight)">${escapeHTML(p.character.charName||p.username)}</div>
         <div class="muted mini">@${escapeHTML(p.username)} • Raça: ${escapeHTML(race)} • Classe: ${escapeHTML(getClass(p.character.classId)?.name||"—")} • Lvl ${lvl} • ${p.xp}xp</div>
       </div>
       <span class="pill">${p.characterCreated?"✅ Criado":"⏳ Pendente"}</span>
@@ -2214,7 +2219,7 @@ function renderMasterMaps(container){
           ${mp.imageDataUrl?`<img src="${mp.imageDataUrl}" style="width:100%;height:200px;object-fit:cover;display:block">`:`<div style="width:100%;height:200px;background:rgba(5,3,1,.8);display:flex;align-items:center;justify-content:center;font-size:48px">🗺</div>`}
           <div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,3,1,.8) 0%,transparent 50%)"></div>
           <div style="position:absolute;bottom:8px;left:10px;right:10px">
-            <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:var(--goldL)">${escapeHTML(mp.name)}</div>
+            <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:var(--goldLight)">${escapeHTML(mp.name)}</div>
             <div class="muted mini">${escapeHTML(mp.region||"")}</div>
           </div>
         </div>
@@ -2414,7 +2419,7 @@ function renderMasterSkillBook(container){
     const schools={};SKILL_SCHOOLS.forEach(s=>schools[s]=0);
     skills.forEach(sk=>{ if(schools[sk.school]!==undefined)schools[sk.school]++; });
     const sorted=Object.entries(schools).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    el.innerHTML=sorted.map(([s,c])=>`<div style="background:rgba(5,3,1,.6);border:1px solid rgba(180,140,60,.16);border-radius:2px;padding:8px;text-align:center"><div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px">${s.toUpperCase()}</div><div style="font-weight:700;font-family:'Cinzel',serif;font-size:18px;color:var(--goldL)">${c}</div></div>`).join("")||`<div class="muted mini">Sem skills ainda.</div>`;
+    el.innerHTML=sorted.map(([s,c])=>`<div style="background:rgba(5,3,1,.6);border:1px solid rgba(180,140,60,.16);border-radius:2px;padding:8px;text-align:center"><div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px">${s.toUpperCase()}</div><div style="font-weight:700;font-family:'Cinzel',serif;font-size:18px;color:var(--goldLight)">${c}</div></div>`).join("")||`<div class="muted mini">Sem skills ainda.</div>`;
   }
 
   function renderSkillList(){
@@ -2439,13 +2444,13 @@ function renderMasterSkillBook(container){
         <div style="background:linear-gradient(90deg,rgba(20,12,6,.9),rgba(14,9,4,.9));padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(180,140,60,.15)">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:16px">${getSchoolIcon(school)}</span>
-            <b style="font-family:'Cinzel',serif;font-size:13px;color:var(--goldL);letter-spacing:1px">${school.toUpperCase()}</b>
+            <b style="font-family:'Cinzel',serif;font-size:13px;color:var(--goldLight);letter-spacing:1px">${school.toUpperCase()}</b>
           </div>
           <span class="pill">${sklist.length} skill${sklist.length>1?"s":""}</span>
         </div>
         <div style="padding:8px;display:grid;gap:6px">
           ${sklist.map(sk=>{
-            const typeCol={Passiva:"var(--muted)",Ativa:"var(--goldL)",Reação:"#3498db",Ultimate:"#c090e8",Racial:"var(--ok)",Maldição:"var(--bad)",Bênção:"#5de87a",Ritual:"#ffaa55"}[sk.type]||"var(--muted)";
+            const typeCol={Passiva:"var(--muted)",Ativa:"var(--goldLight)",Reação:"#3498db",Ultimate:"#c090e8",Racial:"var(--ok)",Maldição:"var(--bad)",Bênção:"#5de87a",Ritual:"#ffaa55"}[sk.type]||"var(--muted)";
             return`<div style="border:1px solid rgba(180,140,60,.14);border-radius:2px;padding:11px;background:rgba(7,5,2,.55);transition:border-color .18s" onmouseover="this.style.borderColor='rgba(200,149,42,.35)'" onmouseout="this.style.borderColor='rgba(180,140,60,.14)'">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
                 <div style="flex:1;min-width:180px">
@@ -2457,7 +2462,7 @@ function renderMasterSkillBook(container){
                     ${sk.prereq?`<span class="tag" style="font-size:9px">→ ${escapeHTML(sk.prereq)}</span>`:""}
                   </div>
                   <div style="font-size:13px;color:var(--ink);margin-top:5px;line-height:1.5">${escapeHTML(sk.description||"")}</div>
-                  ${sk.effect?`<div style="margin-top:5px;padding:6px 8px;background:rgba(200,149,42,.07);border:1px solid rgba(200,149,42,.2);border-radius:2px"><div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:2px">EFEITO MECÂNICO</div><div style="font-size:12px;color:var(--goldL)">${escapeHTML(sk.effect)}</div></div>`:""}
+                  ${sk.effect?`<div style="margin-top:5px;padding:6px 8px;background:rgba(200,149,42,.07);border:1px solid rgba(200,149,42,.2);border-radius:2px"><div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:2px">EFEITO MECÂNICO</div><div style="font-size:12px;color:var(--goldLight)">${escapeHTML(sk.effect)}</div></div>`:""}
                   ${sk.masterNote?`<div style="margin-top:5px;padding:6px 8px;background:rgba(139,26,26,.08);border:1px solid rgba(139,26,26,.25);border-radius:2px"><div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:2px">🔒 NOTA DO MESTRE</div><div style="font-size:12px;color:rgba(200,149,42,.7)">${escapeHTML(sk.masterNote)}</div></div>`:""}
                 </div>
               </div>
@@ -2560,7 +2565,7 @@ function openSkillBookModal(id){
     const desc=m.querySelector("#sk_desc").value||"Descrição...";
     const eff=m.querySelector("#sk_effect").value;
     const prev=m.querySelector("#sk_preview");
-    const typeCol={Passiva:"var(--muted)",Ativa:"var(--goldL)",Reação:"#3498db",Ultimate:"#c090e8",Racial:"var(--ok)",Maldição:"var(--bad)",Bênção:"#5de87a",Ritual:"#ffaa55"}[tp]||"var(--muted)";
+    const typeCol={Passiva:"var(--muted)",Ativa:"var(--goldLight)",Reação:"#3498db",Ultimate:"#c090e8",Racial:"var(--ok)",Maldição:"var(--bad)",Bênção:"#5de87a",Ritual:"#ffaa55"}[tp]||"var(--muted)";
     prev.innerHTML=`
       <b style="font-family:'Cinzel',serif;font-size:14px;color:var(--ink)">${escapeHTML(nm)}</b>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
@@ -2569,7 +2574,7 @@ function openSkillBookModal(id){
         ${ct&&ct!=="Gratuito"?`<span class="tag" style="font-size:9px">💎 ${escapeHTML(ct)}</span>`:""}
       </div>
       <div style="margin-top:6px;font-size:12px;color:var(--ink)">${escapeHTML(desc.slice(0,120))}${desc.length>120?"...":""}</div>
-      ${eff?`<div style="margin-top:5px;font-size:11px;color:var(--goldL)">⚡ ${escapeHTML(eff.slice(0,80))}</div>`:""}
+      ${eff?`<div style="margin-top:5px;font-size:11px;color:var(--goldLight)">⚡ ${escapeHTML(eff.slice(0,80))}</div>`:""}
     `;
   }
   m.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("input",updatePreview));
@@ -2636,7 +2641,7 @@ function renderLojaPanel(pid){
       <div style="display:flex;align-items:center;gap:8px">
         <div style="background:rgba(200,149,42,.12);border:1px solid rgba(200,149,42,.4);border-radius:2px;padding:8px 16px;display:flex;align-items:center;gap:8px">
           <span style="font-size:20px">🪙</span>
-          <span id="lojaOuroDisplay" style="font-family:'Cinzel',serif;font-weight:900;font-size:20px;color:var(--goldL)">${ouro}</span>
+          <span id="lojaOuroDisplay" style="font-family:'Cinzel',serif;font-weight:900;font-size:20px;color:var(--goldLight)">${ouro}</span>
           <span class="muted mini">ouro</span>
         </div>
       </div>
@@ -2671,7 +2676,7 @@ function renderLojaPanel(pid){
     });
     if(!filtered.length){grid.innerHTML='<div class="muted mini" style="grid-column:1/-1;padding:20px;text-align:center">Nenhum item disponível.</div>';return;}
     grid.innerHTML = filtered.map(it=>{
-      const rarCol={comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldL)"}[it.rarity||"comum"]||"var(--muted)";
+      const rarCol={comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[it.rarity||"comum"]||"var(--muted)";
       const canBuy = ouro >= Number(it.price||0);
       return`<div style="border:1px solid ${rarCol}40;border-radius:2px;padding:13px;background:rgba(6,4,2,.65);display:flex;flex-direction:column;gap:8px;transition:border-color .2s" onmouseover="this.style.borderColor='${rarCol}80'" onmouseout="this.style.borderColor='${rarCol}40'">
         <div style="display:flex;gap:10px;align-items:flex-start">
@@ -2686,11 +2691,11 @@ function renderLojaPanel(pid){
           </div>
         </div>
         ${it.description?`<div style="font-size:12px;color:var(--muted);font-style:italic">${escapeHTML(it.description)}</div>`:''}
-        ${it.effect?`<div style="font-size:11px;color:var(--goldL);padding:4px 6px;background:rgba(200,149,42,.07);border:1px solid rgba(200,149,42,.15);border-radius:2px">⚡ ${escapeHTML(it.effect)}</div>`:''}
+        ${it.effect?`<div style="font-size:11px;color:var(--goldLight);padding:4px 6px;background:rgba(200,149,42,.07);border:1px solid rgba(200,149,42,.15);border-radius:2px">⚡ ${escapeHTML(it.effect)}</div>`:''}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
           <div style="display:flex;align-items:center;gap:5px">
             <span style="font-size:18px">🪙</span>
-            <span style="font-family:'Cinzel',serif;font-weight:900;font-size:18px;color:var(--goldL)">${Number(it.price||0)}</span>
+            <span style="font-family:'Cinzel',serif;font-weight:900;font-size:18px;color:var(--goldLight)">${Number(it.price||0)}</span>
             ${it.sellPrice?`<span class="muted mini">/ venda: ${it.sellPrice}</span>`:''}
           </div>
           <div style="display:flex;gap:5px">
@@ -2791,7 +2796,7 @@ function renderMasterShop(container){
     const el=document.getElementById("shopItemsList");if(!el)return;
     if(!(DB.masterShop.items||[]).length){el.innerHTML='<div style="border:1px dashed rgba(180,140,60,.2);border-radius:2px;padding:20px;text-align:center"><span class="muted mini">Nenhum item na loja. Adicione itens para os players comprarem!</span></div>';return;}
     el.innerHTML=(DB.masterShop.items||[]).map(it=>{
-      const rarCol={comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldL)"}[it.rarity||"comum"];
+      const rarCol={comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[it.rarity||"comum"];
       return`<div style="border:1px solid ${rarCol}35;border-radius:2px;padding:11px;background:rgba(6,4,2,.6);display:flex;gap:10px;align-items:center">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -3096,67 +3101,51 @@ function getAlignLabel(v){
 
 
 /* ═══════════════════════════════════════════════════════════════
-   FIREBASE / BACKEND CONFIG
-   Deixe aqui as credenciais — a IA de backend vai preencher
+   FIREBASE CONFIG — MYR RPG
+   Credenciais do projeto myr-rpg já configuradas.
 ═══════════════════════════════════════════════════════════════ */
 
 /*
   ╔══════════════════════════════════════════════════════════╗
-  ║            MYR — INSTRUÇÕES DE DEPLOY                  ║
-  ╠══════════════════════════════════════════════════════════╣
-  ║  OPÇÃO 1: GITHUB PAGES (mais fácil, sem backend)        ║
-  ║  1. Crie repositório público no GitHub                  ║
-  ║  2. Faça upload deste arquivo como index.html           ║
-  ║  3. Vá em Settings > Pages > Deploy from main          ║
-  ║  4. Acesse em: https://SEU_USER.github.io/SEU_REPO     ║
-  ║  NOTA: Cada browser tem save separado (localStorage)   ║
-  ╠══════════════════════════════════════════════════════════╣
-  ║  OPÇÃO 2: FIREBASE (sync real entre todos)              ║
-  ║  Preencha MYR_FIREBASE_CONFIG abaixo com suas keys      ║
-  ║  e ative: MYR_USE_FIREBASE = true                       ║
+  ║            MYR — FIREBASE SYNC ATIVO                   ║
+  ║  Todos os dados são sincronizados em tempo real         ║
+  ║  via Firebase Realtime Database.                        ║
   ╚══════════════════════════════════════════════════════════╝
 */
 
-const MYR_USE_FIREBASE = false; // Mude para true quando tiver configurado
+const MYR_USE_FIREBASE = true;
 
 const MYR_FIREBASE_CONFIG = {
-  // Cole aqui as credenciais do seu projeto Firebase:
-  apiKey:            "COLE_AQUI_SUA_API_KEY",
-  authDomain:        "SEU_PROJETO.firebaseapp.com",
-  databaseURL:       "https://SEU_PROJETO-default-rtdb.firebaseio.com",
-  projectId:         "SEU_PROJETO",
-  storageBucket:     "SEU_PROJETO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:xxxxxxxxxxxxxx"
+  apiKey:            "AIzaSyBnPtEP-FhOqN5SBE_UAsEvzVsXtXJH0_o",
+  authDomain:        "myr-rpg.firebaseapp.com",
+  databaseURL:       "https://myr-rpg-default-rtdb.firebaseio.com",
+  projectId:         "myr-rpg",
+  storageBucket:     "myr-rpg.firebasestorage.app",
+  messagingSenderId: "391790281343",
+  appId:             "1:391790281343:web:87d74cbe149a415036354a"
 };
-
-// ── Firebase SDK + Realtime DB sync ──
-// Este bloco é ativado quando MYR_USE_FIREBASE = true
-// A IA de backend deve:
-// 1. Criar projeto no Firebase Console
-// 2. Ativar Realtime Database (modo teste ou com regras)
-// 3. Copiar credenciais para MYR_FIREBASE_CONFIG acima
-// 4. Setar MYR_USE_FIREBASE = true
 
 let _fbApp = null;
 let _fbDb  = null;
 let _fbSyncTimeout = null;
+let _fbIgnoreNext = false; // evita loop: salvar local → recebe evento remoto → salva de volta
 
 async function initFirebase(){
   if(!MYR_USE_FIREBASE) return;
   try{
-    // Carrega SDK do Firebase dinamicamente
-    const { initializeApp }   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getDatabase, ref, set, onValue, get } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getDatabase, ref, set, onValue } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+
     _fbApp = initializeApp(MYR_FIREBASE_CONFIG);
     _fbDb  = getDatabase(_fbApp);
 
-    // Escuta mudanças remotas e atualiza local
+    // Escuta mudanças remotas e aplica localmente
     const dbRef = ref(_fbDb, "myr_db");
     onValue(dbRef, snapshot=>{
+      if(_fbIgnoreNext){ _fbIgnoreNext=false; return; }
       const remote = snapshot.val();
       if(!remote) return;
-      // Só aplica se versão remota for mais nova
+      // Só aplica se versão remota for mais nova que a local
       if(remote._ts && remote._ts > (DB._ts||0)){
         DB = remote;
         localStorage.setItem(KEY, JSON.stringify(DB));
@@ -3164,39 +3153,27 @@ async function initFirebase(){
       }
     });
 
-    console.log("✅ Firebase conectado!");
+    console.log("✅ Firebase MYR conectado!");
     toast("☁️ Sincronização Firebase ativa!",true);
   }catch(e){
     console.error("Firebase init error:", e);
-    toast("⚠️ Firebase falhou — usando local.",false);
+    toast("⚠️ Firebase falhou — usando somente local.",false);
   }
 }
 
-// Sobrescreve saveDB para também salvar no Firebase quando ativo
-const _localSaveDB = saveDB;
-
+// Salva localmente E no Firebase (com debounce de 800ms)
 function saveDB(db){
-  // ✅ primeiro executa o save original
-  _localSaveDB(db);
-
-  // ✅ depois manda pro Firebase (se ativo)
-  if (typeof MYR_USE_FIREBASE !== "undefined" && MYR_USE_FIREBASE && _fbDb) {
-
-    clearTimeout(_fbSyncTimeout);
-
-    _fbSyncTimeout = setTimeout(async () => {
-      try{
-        const { ref, set } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-
-        db._ts = Date.now();
-        await set(ref(_fbDb,"myr_db"), db);
-
-      }catch(e){
-        console.warn("Firebase save error:", e);
-      }
-    }, 800);
-
-  }
+  localStorage.setItem(KEY, JSON.stringify(db));
+  if(!MYR_USE_FIREBASE || !_fbDb) return;
+  clearTimeout(_fbSyncTimeout);
+  _fbSyncTimeout = setTimeout(async()=>{
+    try{
+      const { ref, set } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      db._ts = Date.now();
+      _fbIgnoreNext = true;
+      await set(ref(_fbDb,"myr_db"), db);
+    }catch(e){ console.warn("Firebase save error:", e); }
+  }, 800);
 }
 
 // Inicializa Firebase quando o site carrega
@@ -3287,7 +3264,7 @@ function renderPlayer(playerId, action=null){
           <div class="row" style="justify-content:space-between">
             <span class="pill">Lvl <b>${lvl}</b> • XP <b>${p.xp}</b> / ${xpNext}</span>
             <span class="pill">Attr <b>${Number(c.levelAttrBonus||0)}</b> • Pick <b>${Number(c.levelSkillBonus||0)}</b></span>
-            <span class="pill" style="color:var(--goldL);border-color:rgba(200,149,42,.4)">🪙 <b>${Number(c.ouro||0)}</b> ouro</span>
+            <span class="pill" style="color:var(--goldLight);border-color:rgba(200,149,42,.4)">🪙 <b>${Number(c.ouro||0)}</b> ouro</span>
           </div>
           <div class="kpiBar" style="margin-top:8px"><div class="xpFill" style="width:${xpPct}%"></div></div>
           <div class="row" style="margin-top:10px">
@@ -3953,6 +3930,11 @@ $("btnLogin").onclick = ()=>{
   if(!res.ok){toast(res.msg,false);return;}
   DB=loadDB(); render();
 };
+// Enter nos campos de login dispara o login
+["loginUser","loginPass"].forEach(id=>{
+  const el=$(id); if(!el) return;
+  el.addEventListener("keydown",e=>{ if(e.key==="Enter") $("btnLogin")?.click(); });
+});
 $("btnLogout").onclick = ()=>logout();
 $("btnReset").onclick = ()=>{ if(confirm("Apagar todos os dados? Isso não pode ser desfeito.")){ localStorage.removeItem(KEY); DB=loadDB(); render(); } };
 $("btnMute").onclick = ()=>{ _muteSound=!_muteSound; $("btnMute").textContent=_muteSound?"🔕":"🔔"; };
@@ -4481,52 +4463,6 @@ try{
 }catch(_){}
 </script>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBnPtEP-FhOqN5SBE_UAsEvzVsXtXJH0_o",
-    authDomain: "myr-rpg.firebaseapp.com",
-    databaseURL: "https://myr-rpg-default-rtdb.firebaseio.com",
-    projectId: "myr-rpg",
-    storageBucket: "myr-rpg.firebasestorage.app",
-    messagingSenderId: "391790281343",
-    appId: "1:391790281343:web:87d74cbe149a415036354a"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // 🔥 só inicia depois que TUDO carregou
-  window.addEventListener("load", () => {
-
-    console.log("Firebase iniciado com segurança");
-
-    // ouvir atualizações
-    let lastUpdate = 0;
-
-    onValue(ref(db, "myr/globalState"), (snapshot) => {
-      const data = snapshot.val();
-
-      if(data && data.updatedAt > lastUpdate){
-        lastUpdate = data.updatedAt;
-
-        if(window.loadGameState){
-          window.loadGameState(data);
-        }
-      }
-    });
-
-    // função global segura
-    window.saveToCloud = function(data){
-      set(ref(db, "myr/globalState"), {
-        ...data,
-        updatedAt: Date.now()
-      });
-    };
-
-  });
-</script>
 </body>
 </html>
