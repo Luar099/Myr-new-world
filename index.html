@@ -3175,7 +3175,7 @@ async function initFirebase(){
 // Sobrescreve saveDB para também salvar no Firebase quando ativo
 const _localSaveDB = saveDB;
 function saveDB(db){
-  _localSaveDB(db);
+var _localSaveDB(db);
   if(!MYR_USE_FIREBASE || !_fbDb) return;
   // Debounce: só envia após 800ms sem novas mudanças
   clearTimeout(_fbSyncTimeout);
