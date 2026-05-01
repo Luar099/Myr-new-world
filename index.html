@@ -963,59 +963,60 @@
 
     /* ========================= PLACA DA LOJA ========================= */
     @keyframes signDrop {
-      0%   { transform: translateY(-120px) rotate(-8deg); opacity:0; }
-      60%  { transform: translateY(10px) rotate(3deg); opacity:1; }
-      75%  { transform: translateY(-5px) rotate(-1.5deg); }
-      88%  { transform: translateY(3px) rotate(1deg); }
-      100% { transform: translateY(0px) rotate(0deg); opacity:1; }
+      0%   { transform: translateY(-140px) rotate(-6deg); opacity:0; }
+      55%  { transform: translateY(12px) rotate(4deg); opacity:1; }
+      72%  { transform: translateY(-6px) rotate(-2deg); }
+      86%  { transform: translateY(4px) rotate(1.5deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
     }
     @keyframes ropeSwing {
-      0%,100% { transform: rotate(-3deg); }
-      50%      { transform: rotate(3deg); }
+      0%,100% { transform: rotate(-2deg) translateX(-50%); }
+      50%      { transform: rotate(2deg) translateX(-50%); }
     }
-    #shopSignContainer {
+    #shopSignWrap {
+      display: none;
       position: fixed;
-      top: 0; left: 50%; transform: translateX(-50%);
-      z-index: 999;
-      pointer-events: none;
-      display: flex;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
       flex-direction: column;
       align-items: center;
+      pointer-events: none;
     }
+    #shopSignWrap.visible { display: flex; }
     #shopRope {
-      width: 3px;
-      height: 48px;
-      background: linear-gradient(180deg, rgba(180,140,80,.9), rgba(120,90,40,.6));
-      border-radius: 2px;
-      flex-shrink: 0;
+      width: 4px; height: 52px;
+      background: linear-gradient(180deg,rgba(200,149,42,.9),rgba(120,80,20,.5));
+      border-radius: 2px; flex-shrink: 0;
     }
     #shopSign {
-      background: linear-gradient(145deg, #2d1a06, #3a2208, #261505);
-      border: 2px solid rgba(200,149,42,.7);
-      border-radius: 4px;
-      padding: 10px 28px;
+      background: linear-gradient(145deg,#2a1505,#3a1e08,#221004);
+      border: 2px solid rgba(200,149,42,.75);
+      border-radius: 5px;
+      padding: 12px 32px;
       font-family: 'Cinzel', serif;
-      font-size: 18px;
-      font-weight: 900;
+      font-size: 19px; font-weight: 900;
       color: var(--goldLight);
       letter-spacing: 3px;
-      text-shadow: 0 0 16px rgba(200,149,42,.6), 0 2px 4px rgba(0,0,0,.9);
-      box-shadow: 0 8px 28px rgba(0,0,0,.7), 0 2px 0 rgba(200,149,42,.15) inset;
+      text-shadow: 0 0 18px rgba(200,149,42,.7), 0 2px 4px rgba(0,0,0,.9);
+      box-shadow: 0 10px 32px rgba(0,0,0,.8), 0 2px 0 rgba(200,149,42,.1) inset;
       white-space: nowrap;
+      animation: signDrop .85s cubic-bezier(.22,1,.36,1) forwards;
       transform-origin: top center;
     }
-    #shopSignContainer.visible #shopSign {
-      animation: signDrop .9s cubic-bezier(.22,1,.36,1) forwards,
-                 ropeSwing 2.2s ease-in-out 1s infinite;
+    #shopSignWrap.visible {
+      animation: ropeSwing 2.4s ease-in-out .9s infinite;
     }
-    #shopSignContainer.visible { pointer-events: auto; }
-
     /* ========================= MODO LEVE ========================= */
-    body.perf-mode .runeBg { display: none; }
+    body.perf-mode .runeBg { display: none !important; }
+    body.perf-mode * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    body.perf-mode .card { backdrop-filter: none !important; }
+    body.perf-mode header { backdrop-filter: none !important; }
     body.perf-mode .bookCover { transition: none !important; }
-    body.perf-mode * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-    body.perf-mode .card { backdrop-filter: none; }
-    body.perf-mode header { backdrop-filter: none; }
 
   </style>
 </head>
@@ -1075,60 +1076,60 @@
     <button class="secondary mini" id="btnSettings" title="Configurações">⚙️</button>
     <button class="secondary mini hidden" id="btnLogout">↩ Sair</button>
   </div>
-
-  <!-- PAINEL DE CONFIGURAÇÕES -->
-  <div id="settingsPanel" style="display:none;position:fixed;top:56px;right:12px;z-index:200;
-    background:rgba(10,8,4,.97);border:1px solid rgba(200,149,42,.4);border-radius:4px;
-    padding:18px 20px;min-width:260px;box-shadow:0 12px 40px rgba(0,0,0,.8);backdrop-filter:blur(12px)">
-    <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--goldLight);letter-spacing:1px;margin-bottom:14px;
-      display:flex;justify-content:space-between;align-items:center">
-      ⚙️ CONFIGURAÇÕES
-      <button onclick="document.getElementById('settingsPanel').style.display='none'"
-        style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px">✕</button>
-    </div>
-
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--muted);font-family:'Cinzel',serif;letter-spacing:.5px;margin-bottom:8px">🌐 IDIOMA</div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <button id="langPT" onclick="setLang('pt')"
-          style="background:rgba(139,26,26,.4);border:1px solid rgba(200,149,42,.3);border-radius:2px;
-          color:var(--goldLight);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left;
-          transition:all .2s">🇧🇷 Português</button>
-        <button id="langEN" onclick="setLang('en')"
-          style="background:transparent;border:1px solid rgba(180,140,80,.2);border-radius:2px;
-          color:var(--muted);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left;
-          transition:all .2s">🇺🇸 English</button>
-        <button id="langPB" onclick="setLang('pb')"
-          style="background:transparent;border:1px solid rgba(180,140,80,.2);border-radius:2px;
-          color:var(--muted);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left;
-          transition:all .2s">🌵 Paraibano</button>
-      </div>
-    </div>
-
-    <div style="height:1px;background:rgba(200,149,42,.15);margin-bottom:14px"></div>
-
-    <div>
-      <div style="font-size:11px;color:var(--muted);font-family:'Cinzel',serif;letter-spacing:.5px;margin-bottom:8px">⚡ DESEMPENHO</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div>
-          <div style="font-size:13px;color:var(--ink)">Modo Leve</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Remove animações pesadas</div>
-        </div>
-        <div id="perfToggle" onclick="togglePerfMode()"
-          style="width:44px;height:24px;border-radius:12px;cursor:pointer;position:relative;
-          border:1px solid rgba(180,140,80,.3);transition:all .3s;flex-shrink:0;
-          background:rgba(100,100,100,.3)">
-          <div id="perfDot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;
-            border-radius:50%;background:#666;transition:all .3s"></div>
-        </div>
-      </div>
-    </div>
-
-    <div style="height:1px;background:rgba(200,149,42,.15);margin:14px 0"></div>
-
-    <button class="secondary mini" id="btnReset" style="width:100%;padding:8px;font-size:11px">🗑️ Resetar Dados</button>
-  </div>
 </header>
+
+<!-- PLACA DA LOJA -->
+<div id="shopSignWrap">
+  <div id="shopRope"></div>
+  <div id="shopSign">🛒 LOJA ABERTA</div>
+</div>
+
+<!-- PAINEL DE CONFIGURAÇÕES -->
+<div id="settingsPanel" style="display:none;position:fixed;top:58px;right:12px;z-index:500;
+  background:rgba(10,8,4,.97);border:1px solid rgba(200,149,42,.4);border-radius:4px;
+  padding:18px 20px;min-width:270px;box-shadow:0 14px 44px rgba(0,0,0,.85);backdrop-filter:blur(14px)">
+  <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--goldLight);letter-spacing:1px;
+    margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    ⚙️ CONFIGURAÇÕES
+    <button onclick="document.getElementById('settingsPanel').style.display='none'"
+      style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:0">✕</button>
+  </div>
+
+  <div style="font-size:10px;color:var(--muted);font-family:'Cinzel',serif;letter-spacing:.6px;margin-bottom:8px">🌐 IDIOMA</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
+    <button id="langPT" onclick="setLang('pt')"
+      style="background:rgba(139,26,26,.4);border:1px solid rgba(200,149,42,.35);border-radius:2px;
+      color:var(--goldLight);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left">
+      🇧🇷 Português</button>
+    <button id="langEN" onclick="setLang('en')"
+      style="background:transparent;border:1px solid rgba(180,140,80,.2);border-radius:2px;
+      color:var(--muted);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left">
+      🇺🇸 English</button>
+    <button id="langPB" onclick="setLang('pb')"
+      style="background:transparent;border:1px solid rgba(180,140,80,.2);border-radius:2px;
+      color:var(--muted);font-family:'Cinzel',serif;font-size:11px;padding:8px 12px;cursor:pointer;text-align:left">
+      🌵 Paraibano</button>
+  </div>
+
+  <div style="height:1px;background:rgba(200,149,42,.15);margin-bottom:14px"></div>
+
+  <div style="font-size:10px;color:var(--muted);font-family:'Cinzel',serif;letter-spacing:.6px;margin-bottom:8px">⚡ DESEMPENHO</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-size:13px;color:var(--ink)">Modo Leve</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Remove animações pesadas</div>
+    </div>
+    <div id="perfToggle" onclick="togglePerfMode()"
+      style="width:44px;height:24px;border-radius:12px;cursor:pointer;position:relative;
+      border:1px solid rgba(180,140,80,.3);flex-shrink:0;background:rgba(80,80,80,.3);transition:background .3s">
+      <div id="perfDot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;
+        border-radius:50%;background:#666;transition:all .3s"></div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:rgba(200,149,42,.15);margin-bottom:14px"></div>
+  <button id="btnReset" class="secondary mini" style="width:100%;padding:9px;font-size:11px">🗑️ Resetar todos os dados</button>
+</div>
 
 <main>
   <!-- ====================== LOGIN ====================== -->
@@ -1251,7 +1252,7 @@ function setHubTab(tabId){
   });
   if(UI.hubTab==="hubLoja"){
     const p=getSessionPlayer();
-    if(p){ renderLojaPanel(p.id); checkShopSignOnOpen(); }
+    if(p){ renderLojaPanel(p.id); if((DB.masterShop||{}).enabled) showShopSign(); }
   }
 }
 
@@ -2937,19 +2938,16 @@ function toggleShop(){
   if(DB.masterShop.enabled) showShopSign();
   setMasterTab("mLoja");
 }
-
 function showShopSign(){
-  const cont = document.getElementById("shopSignContainer");
-  if(!cont) return;
-  cont.classList.remove("visible");
-  void cont.offsetWidth; // reflow
-  cont.classList.add("visible");
-  setTimeout(()=>{ cont.classList.remove("visible"); }, 4200);
-}
-
-// Mostra placa automaticamente quando player abre a aba da loja e ela está aberta
-function checkShopSignOnOpen(){
-  if((DB.masterShop||{}).enabled) showShopSign();
+  const w = document.getElementById("shopSignWrap");
+  if(!w) return;
+  // reset animation
+  w.classList.remove("visible");
+  const sign = document.getElementById("shopSign");
+  if(sign){ sign.style.animation="none"; void sign.offsetWidth; sign.style.animation=""; }
+  void w.offsetWidth;
+  w.classList.add("visible");
+  setTimeout(()=>w.classList.remove("visible"), 4500);
 }
 
 function masterGiveOuro(pid,amt,give){
@@ -3795,34 +3793,34 @@ function renderDiary(player){
 /* ========================= NPCs ========================= */
 function renderNpcs(player){
   const npcs = (player.character.npcs||[]);
-
-  // NPCs do Mestre visíveis para os players (sem campos secretos)
   const masterNpcs = (DB.masterNpcs||[]);
-  let masterNpcsHtml = "";
+  let out = "";
+
+  // Seção: NPCs do Mestre (visíveis a todos, sem campo secreto)
   if(masterNpcs.length){
-    masterNpcsHtml = `<div style="margin-bottom:14px">
-      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold);letter-spacing:.8px;margin-bottom:8px;
-        display:flex;align-items:center;gap:8px">
+    out += `<div style="margin-bottom:14px">
+      <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--gold);letter-spacing:.8px;
+        margin-bottom:8px;display:flex;align-items:center;gap:8px">
         <span>⚔️ NPCs DO MUNDO</span>
-        <span style="height:1px;flex:1;background:rgba(200,149,42,.25)"></span>
+        <span style="height:1px;flex:1;background:rgba(200,149,42,.2)"></span>
       </div>
       <div style="display:grid;gap:8px">
         ${masterNpcs.map(n=>{
-          const relColor = Number(n.alignment||50)>=70?"var(--ok)":Number(n.alignment||50)>=40?"var(--gold)":"var(--bad)";
-          const relLabel = ["Inimigo","Hostil","Desconfiado","Neutro","Amigável","Aliado","Devoto"][Math.min(6,Math.floor(Number(n.alignment||50)/15))];
+          const al = Number(n.alignment||50);
+          const rc = al>=70?"var(--ok)":al>=40?"var(--gold)":"var(--bad)";
+          const rl = ["Inimigo","Hostil","Desconfiado","Neutro","Amigável","Aliado","Devoto"][Math.min(6,Math.floor(al/15))];
           return `<div class="npcCard" style="border-color:rgba(200,149,42,.18)">
             <div style="display:flex;gap:10px;align-items:flex-start">
-              ${n.imageDataUrl?`<img src="${n.imageDataUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3);flex-shrink:0">`:`<div style="width:48px;height:48px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎭</div>`}
+              ${n.imageDataUrl?`<img src="${n.imageDataUrl}" style="width:46px;height:46px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3);flex-shrink:0">`:`<div style="width:46px;height:46px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎭</div>`}
               <div style="flex:1;min-width:0">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
                   <b style="font-family:'Cinzel',serif;font-size:13px">${escapeHTML(n.name)}</b>
-                  <span class="pill mini" style="color:${relColor};border-color:${relColor}40;flex-shrink:0">${relLabel}</span>
+                  <span class="pill mini" style="color:${rc};border-color:${rc}40;flex-shrink:0">${rl}</span>
                 </div>
                 ${n.role?`<div class="muted mini">${escapeHTML(n.role)}${n.location?` • 📍 ${escapeHTML(n.location)}`:""}</div>`:""}
                 ${n.description?`<div style="font-size:12px;color:var(--ink);margin-top:4px;font-style:italic">${escapeHTML(n.description)}</div>`:""}
-                ${n.notes?`<div class="muted mini" style="margin-top:3px">📝 ${escapeHTML(n.notes)}</div>`:""}
                 <div style="height:4px;border-radius:2px;background:rgba(4,2,1,.8);overflow:hidden;border:1px solid rgba(180,140,60,.12);margin-top:6px">
-                  <div style="height:100%;width:${n.alignment||50}%;background:${relColor};border-radius:2px"></div>
+                  <div style="height:100%;width:${al}%;background:${rc};border-radius:2px"></div>
                 </div>
               </div>
             </div>
@@ -3832,35 +3830,44 @@ function renderNpcs(player){
     </div>`;
   }
 
-  const playerNpcsHtml = npcs.length ? `<div style="margin-bottom:6px">
-    <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--muted);letter-spacing:.8px;margin-bottom:8px;
-      display:flex;align-items:center;gap:8px">
-      <span>👤 SEUS CONTATOS</span>
-      <span style="height:1px;flex:1;background:rgba(180,140,80,.15)"></span>
-    </div>
-    <div style="display:grid;gap:10px">${npcs.map(n=>{
-    const rel = Number(n.rel||50);
-    const relColor = rel>=70?"var(--ok)":rel>=40?"var(--gold)":"var(--bad)";
-    const relLabel = rel>=80?"Aliado leal":rel>=60?"Amigável":rel>=40?"Neutro":rel>=20?"Desconfiado":"Inimigo";
-    return `<div class="npcCard">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <b style="font-family:'Cinzel',serif">${escapeHTML(n.name)}</b>
-          <div class="muted mini">${escapeHTML(n.role||"")}</div>
-        </div>
-        <div class="row" style="gap:6px">
-          <span class="pill mini" style="color:${relColor}">${relLabel}</span>
-          <button class="danger mini" data-action="rm_npc" data-nid="${n.id}">✕</button>
-        </div>
+  // Seção: NPCs pessoais do player
+  if(npcs.length){
+    out += `<div>
+      <div style="font-family:'Cinzel',serif;font-size:11px;color:var(--muted);letter-spacing:.8px;
+        margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <span>👤 SEUS CONTATOS</span>
+        <span style="height:1px;flex:1;background:rgba(180,140,80,.12)"></span>
       </div>
-      <div class="relBar"><div class="relFill" style="width:${rel}%;background:${relColor}"></div></div>
-      <div class="muted mini" style="margin-top:4px">${escapeHTML(n.notes||"")}</div>
-      <div class="row" style="margin-top:6px;gap:6px">
-        <button class="secondary mini" data-action="npc_rel_dec" data-nid="${n.id}">-Rel</button>
-        <button class="secondary mini" data-action="npc_rel_inc" data-nid="${n.id}">+Rel</button>
+      <div style="display:grid;gap:10px">
+        ${npcs.map(n=>{
+          const rel = Number(n.rel||50);
+          const relColor = rel>=70?"var(--ok)":rel>=40?"var(--gold)":"var(--bad)";
+          const relLabel = rel>=80?"Aliado leal":rel>=60?"Amigável":rel>=40?"Neutro":rel>=20?"Desconfiado":"Inimigo";
+          return `<div class="npcCard">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <b style="font-family:'Cinzel',serif">${escapeHTML(n.name)}</b>
+                <div class="muted mini">${escapeHTML(n.role||"")}</div>
+              </div>
+              <div class="row" style="gap:6px">
+                <span class="pill mini" style="color:${relColor}">${relLabel}</span>
+                <button class="danger mini" data-action="rm_npc" data-nid="${n.id}">✕</button>
+              </div>
+            </div>
+            <div class="relBar"><div class="relFill" style="width:${rel}%;background:${relColor}"></div></div>
+            <div class="muted mini" style="margin-top:4px">${escapeHTML(n.notes||"")}</div>
+            <div class="row" style="margin-top:6px;gap:6px">
+              <button class="secondary mini" data-action="npc_rel_dec" data-nid="${n.id}">-Rel</button>
+              <button class="secondary mini" data-action="npc_rel_inc" data-nid="${n.id}">+Rel</button>
+            </div>
+          </div>`;
+        }).join("")}
       </div>
     </div>`;
-  }).join("")}</div>`;
+  }
+
+  if(!out) return '<span class="muted mini">Nenhum NPC registrado ainda.</span>';
+  return out;
 }
 
 /* ========================= MAPA ========================= */
@@ -4131,7 +4138,7 @@ $("btnLogin").onclick = ()=>{
   el.addEventListener("keydown",e=>{ if(e.key==="Enter") $("btnLogin")?.click(); });
 });
 $("btnLogout").onclick = ()=>logout();
-// btnReset handled in settings JS
+// btnReset bound in settings IIFE above
 $("btnMute").onclick = ()=>{ _muteSound=!_muteSound; $("btnMute").textContent=_muteSound?"🔕":"🔔"; };
 
 document.addEventListener("submit",(e)=>e.preventDefault(),true);
@@ -4615,113 +4622,123 @@ function openSkillTreeModal(playerId){
   const btn = document.getElementById("bookOpenBtn");
   if(!overlay || !cover || !btn) return;
 
-  // Se já logado, pula a animação
-  const db = loadDB();
-  if(db && db.session && db.session.userId){
-    overlay.style.display = "none";
-    return;
-  }
-
-  btn.onclick = function(){
+  function openBook(andThenLogin){
     cover.classList.add("opening");
     setTimeout(()=>{
       overlay.style.transition = "opacity .5s ease";
       overlay.style.opacity = "0";
       setTimeout(()=>{
         overlay.style.display = "none";
-        // Fade in the main content
         const main = document.querySelector("main");
         if(main){ main.classList.add("appFadeIn"); setTimeout(()=>main.classList.remove("appFadeIn"),900); }
+        if(andThenLogin) document.getElementById("btnLogin")?.click();
       }, 500);
     }, 900);
-  };
+  }
 
-  // Enter no password também fecha o livro se tiver aberto
+  // Se já logado (e personagem criado) pula o livro direto
+  const db = loadDB();
+  if(db && db.session && db.session.userId){
+    const u = (db.users||[]).find(x=>x.id===db.session.userId);
+    const p = u?.playerId ? (db.players||[]).find(pp=>pp.id===u.playerId) : null;
+    const charOk = u?.role==="master" || (p && p.characterCreated);
+    if(charOk){ overlay.style.display="none"; return; }
+    // Logado mas personagem não criado: abre o livro mas vai direto para o app (sem tela de login)
+    overlay.style.display="none"; return;
+  }
+
+  // Não logado: exibe o livro normalmente, mas bloqueia interação com o app
+  // O main fica visível mas não interativo até o Firebase conectar
+  const mainEl = document.querySelector("main");
+  if(mainEl){ mainEl.style.pointerEvents="none"; mainEl.style.userSelect="none"; }
+
+  btn.onclick = ()=>{ openBook(false); if(mainEl){ mainEl.style.pointerEvents=""; mainEl.style.userSelect=""; } };
+
+  // Enter no campo de senha abre o livro e faz login
   const passInput = document.getElementById("loginPass");
   if(passInput){
-    const origKeydown = passInput.onkeydown;
     passInput.addEventListener("keydown", e=>{
       if(e.key==="Enter" && overlay.style.display !== "none"){
-        btn.click();
-        setTimeout(()=>document.getElementById("btnLogin").click(), 1500);
+        cover.classList.add("opening");
+        setTimeout(()=>{
+          overlay.style.transition = "opacity .5s ease";
+          overlay.style.opacity = "0";
+          setTimeout(()=>{
+            overlay.style.display = "none";
+            if(mainEl){ mainEl.style.pointerEvents=""; mainEl.style.userSelect=""; }
+            document.getElementById("btnLogin")?.click();
+          }, 500);
+        }, 900);
       }
     });
   }
 })();
 
+/* ========================= SETTINGS / LANG / PERF ========================= */
+(function(){
+  let _perfMode = localStorage.getItem("myr_perf")==="1";
+  let _lang = localStorage.getItem("myr_lang")||"pt";
 
-/* ========================= SETTINGS / PERF / LANG ========================= */
-let _perfMode = localStorage.getItem("myr_perf") === "1";
-let _lang = localStorage.getItem("myr_lang") || "pt";
+  const LANGS = {
+    pt:{ ficha:"⚔️ Ficha",inv:"🎒 Inventário",equip:"🛡️ Equip.",dados:"🎲 Dados",diario:"📖 Diário",npcs:"👥 NPCs",mapa:"🗺️ Mapa",loja:"🛒 Loja",sair:"↩ Sair" },
+    en:{ ficha:"⚔️ Sheet",inv:"🎒 Inventory",equip:"🛡️ Gear",dados:"🎲 Dice",diario:"📖 Diary",npcs:"👥 NPCs",mapa:"🗺️ Map",loja:"🛒 Shop",sair:"↩ Logout" },
+    pb:{ ficha:"⚔️ Fixa",inv:"🎒 Trem",equip:"🛡️ Ferrage",dados:"🎲 Dados",diario:"📖 Caderno",npcs:"👥 Cabra",mapa:"🗺️ Chão",loja:"🛒 Bodega",sair:"↩ Mio" },
+  };
 
-function applyPerfMode(){
-  document.body.classList.toggle("perf-mode", _perfMode);
-  const dot = document.getElementById("perfDot");
-  const tog = document.getElementById("perfToggle");
-  if(dot){ dot.style.left = _perfMode ? "calc(100% - 19px)" : "3px"; dot.style.background = _perfMode ? "#2ecc71" : "#666"; }
-  if(tog){ tog.style.background = _perfMode ? "rgba(39,174,96,.6)" : "rgba(100,100,100,.3)"; }
-}
+  window.applyPerfMode = function(){
+    document.body.classList.toggle("perf-mode",_perfMode);
+    const dot=document.getElementById("perfDot");
+    const tog=document.getElementById("perfToggle");
+    if(dot){ dot.style.left=_perfMode?"calc(100% - 19px)":"3px"; dot.style.background=_perfMode?"#2ecc71":"#666"; }
+    if(tog){ tog.style.background=_perfMode?"rgba(39,174,96,.6)":"rgba(80,80,80,.3)"; }
+  };
+  window.togglePerfMode = function(){
+    _perfMode=!_perfMode;
+    localStorage.setItem("myr_perf",_perfMode?"1":"0");
+    applyPerfMode();
+    toast(_perfMode?"⚡ Modo leve ativado!":"✨ Modo completo ativado!",true);
+  };
+  window.setLang = function(lang){
+    _lang=lang;
+    localStorage.setItem("myr_lang",lang);
+    ["pt","en","pb"].forEach(l=>{
+      const b=document.getElementById("lang"+l.toUpperCase());
+      if(!b)return;
+      const active=l===lang;
+      b.style.background=active?"rgba(139,26,26,.4)":"transparent";
+      b.style.color=active?"var(--goldLight)":"var(--muted)";
+      b.style.borderColor=active?"rgba(200,149,42,.35)":"rgba(180,140,80,.2)";
+    });
+    const t=LANGS[lang]||LANGS.pt;
+    const tabMap={hubFicha:t.ficha,hubInventario:t.inv,hubEquip:t.equip,hubDados:t.dados,hubDiario:t.diario,hubNpcs:t.npcs,hubMapa:t.mapa,hubLoja:t.loja};
+    document.querySelectorAll(".hubTab[data-hub]").forEach(b=>{ if(tabMap[b.dataset.hub]) b.textContent=tabMap[b.dataset.hub]; });
+    const lb=document.getElementById("btnLogout"); if(lb) lb.textContent=t.sair;
+    toast("🌐 "+(lang==="pt"?"Português":lang==="en"?"English":"Paraibano, ôxe!"),true);
+  };
 
-function togglePerfMode(){
-  _perfMode = !_perfMode;
-  localStorage.setItem("myr_perf", _perfMode ? "1" : "0");
+  // Init on load
   applyPerfMode();
-  toast(_perfMode ? "⚡ Modo leve ativado!" : "✨ Modo completo ativado!", true);
-}
 
-const LANGS = {
-  pt: { ficha:"⚔️ Ficha", inv:"🎒 Inventário", equip:"🛡️ Equipamentos", dados:"🎲 Dados", diario:"📖 Diário", npcs:"👥 NPCs", mapa:"🗺️ Mapa", loja:"🛒 Loja", sair:"↩ Sair", config:"⚙️ Configurações" },
-  en: { ficha:"⚔️ Sheet", inv:"🎒 Inventory", equip:"🛡️ Equipment", dados:"🎲 Dice", diario:"📖 Diary", npcs:"👥 NPCs", mapa:"🗺️ Map", loja:"🛒 Shop", sair:"↩ Logout", config:"⚙️ Settings" },
-  pb: { ficha:"⚔️ Fixa", inv:"🎒 Trem", equip:"🛡️ Ferrage", dados:"🎲 Dados", diario:"📖 Caderno", npcs:"👥 Cabra", mapa:"🗺️ Chão", loja:"🛒 Bodega", sair:"↩ Mio", config:"⚙️ Trem" },
-};
-
-function setLang(lang){
-  _lang = lang;
-  localStorage.setItem("myr_lang", lang);
-  // Update active state on buttons
-  ["PT","EN","PB"].forEach(l=>{
-    const btn = document.getElementById("lang"+l);
-    if(!btn) return;
-    const isActive = l.toLowerCase() === lang;
-    btn.style.background = isActive ? "rgba(139,26,26,.4)" : "transparent";
-    btn.style.color = isActive ? "var(--goldLight)" : "var(--muted)";
-    btn.style.borderColor = isActive ? "rgba(200,149,42,.3)" : "rgba(180,140,80,.2)";
+  // Settings toggle
+  document.getElementById("btnSettings")?.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const p=document.getElementById("settingsPanel");
+    if(!p) return;
+    const open=p.style.display!=="block";
+    p.style.display=open?"block":"none";
+    if(open){ applyPerfMode(); setLang(_lang); }
   });
-  // Apply labels to current tabs
-  const t = LANGS[lang] || LANGS.pt;
-  const map = { hubFicha: t.ficha, hubInventario: t.inv, hubEquip: t.equip, hubDados: t.dados, hubDiario: t.diario, hubNpcs: t.npcs, hubMapa: t.mapa, hubLoja: t.loja };
-  document.querySelectorAll(".hubTab[data-hub]").forEach(btn=>{
-    if(map[btn.dataset.hub]) btn.textContent = map[btn.dataset.hub];
+  document.addEventListener("click",(e)=>{
+    const p=document.getElementById("settingsPanel");
+    if(p&&!p.contains(e.target)&&e.target.id!=="btnSettings") p.style.display="none";
   });
-  const logoutBtn = document.getElementById("btnLogout");
-  if(logoutBtn) logoutBtn.textContent = t.sair;
-  toast("🌐 " + (lang==="pt"?"Português":lang==="en"?"English":"Paraibano, ôxe!"), true);
-}
-
-// Settings panel toggle
-document.addEventListener("DOMContentLoaded", ()=>{
-  applyPerfMode();
-  setLang(_lang);
-});
-document.getElementById("btnSettings")?.addEventListener("click", (e)=>{
-  e.stopPropagation();
-  const panel = document.getElementById("settingsPanel");
-  if(!panel) return;
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
-  if(panel.style.display === "block"){ applyPerfMode(); setLang(_lang); }
-});
-document.addEventListener("click", (e)=>{
-  const panel = document.getElementById("settingsPanel");
-  if(panel && !panel.contains(e.target) && e.target.id !== "btnSettings"){
-    panel.style.display = "none";
-  }
-});
-// Remove old btnReset listener conflict — re-bind
-document.getElementById("btnReset")?.addEventListener("click", ()=>{
-  if(confirm("Apagar todos os dados? Isso não pode ser desfeito.")){
-    localStorage.removeItem(KEY); DB=loadDB(); render();
-  }
-});
+  // Re-bind btnReset (now inside settings panel)
+  document.getElementById("btnReset")?.addEventListener("click",()=>{
+    if(confirm("Apagar todos os dados? Isso não pode ser desfeito.")){
+      localStorage.removeItem(KEY); DB=loadDB(); render();
+    }
+  });
+})();
 
 render();
 
@@ -4732,12 +4749,6 @@ try{
 }catch(_){}
 </script>
 
-
-<!-- ═══ PLACA DA LOJA ═══ -->
-<div id="shopSignContainer">
-  <div id="shopRope"></div>
-  <div id="shopSign">🛒 LOJA ABERTA</div>
-</div>
 
 </body>
 </html>
