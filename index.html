@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MYR — RPG Hub</title>
+  <title>MYR — RPG Hub v9</title>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -1007,6 +1007,50 @@
     #shopSignWrap.visible {
       animation: ropeSwing 2.4s ease-in-out .9s infinite;
     }
+    /* ========================= V9: NPC CHAT ========================= */
+    .chatBubble{
+      max-width:80%;padding:9px 13px;border-radius:12px;
+      font-size:14px;line-height:1.5;position:relative;
+      font-family:'Crimson Pro',serif;
+    }
+    .chatBubble.player{
+      background:rgba(139,26,26,.25);border:1px solid rgba(180,60,60,.35);
+      margin-left:auto;border-bottom-right-radius:3px;
+      color:var(--ink);
+    }
+    .chatBubble.master{
+      background:rgba(20,15,8,.8);border:1px solid rgba(200,149,42,.3);
+      margin-right:auto;border-bottom-left-radius:3px;
+      color:var(--ink);
+    }
+    .chatBubble .cb-meta{
+      font-size:10px;color:var(--muted);font-family:'Cinzel',serif;
+      letter-spacing:.3px;margin-top:4px;
+    }
+    .chatScroll{
+      max-height:340px;overflow-y:auto;
+      display:flex;flex-direction:column;gap:10px;
+      padding:12px;
+      background:rgba(4,3,2,.6);
+      border:1px solid rgba(180,140,80,.15);
+      border-radius:3px;
+    }
+    .npcChatNotif{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:18px;height:18px;border-radius:999px;
+      background:var(--bad);color:#fff;font-size:10px;font-weight:900;
+      font-family:'Cinzel',serif;padding:0 5px;margin-left:5px;
+      animation:pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+    /* ========================= V9: ITEM CREATION (MASTER→PLAYER) ========================= */
+    .itemCreateForm{
+      background:rgba(200,149,42,.05);
+      border:1px solid rgba(200,149,42,.2);
+      border-radius:2px;padding:14px;margin-bottom:12px;
+    }
+
     /* ========================= MODO LEVE ========================= */
     body.perf-mode .runeBg { display: none !important; }
     body.perf-mode * {
@@ -1254,6 +1298,15 @@ function setHubTab(tabId){
     const p=getSessionPlayer();
     if(p){ renderLojaPanel(p.id); if((DB.masterShop||{}).enabled) showShopSign(); }
   }
+  // V9: ao abrir chat, re-renderiza a lista para mostrar msgs mais recentes
+  if(UI.hubTab==="hubChat"){
+    const p = getSessionPlayer();
+    if(p){
+      DB = loadDB();
+      const el = document.getElementById("chatNpcList");
+      if(el) el.innerHTML = renderChatNpcList(p);
+    }
+  }
 }
 
 function defaultDB(){
@@ -1471,6 +1524,8 @@ let DB = loadDB();
   if(!Array.isArray(DB.skillBook)){DB.skillBook=[];changed=true;}
   if(!DB.masterShop||typeof DB.masterShop!=='object'){DB.masterShop={items:[],enabled:true};changed=true;}
   if(!Array.isArray(DB.masterShop.items)){DB.masterShop.items=[];changed=true;}
+  // V9: npcChats — mensagens player↔mestre via NPCs
+  if(!DB.npcChats||typeof DB.npcChats!=='object'){DB.npcChats={};changed=true;}
     // Master collections
   if(!Array.isArray(DB.bestiary)){DB.bestiary=[];changed=true;}
   if(!Array.isArray(DB.masterNpcs)){DB.masterNpcs=[];changed=true;}
@@ -1947,6 +2002,7 @@ function renderMaster(){
       <button class="hubTab" data-mtab="mStorage">📦 Storage</button>
       <button class="hubTab" data-mtab="mSkills">📜 Skills</button>
       <button class="hubTab" data-mtab="mLoja">🛒 Loja</button>
+      <button class="hubTab" data-mtab="mChat">💬 Chat NPCs</button>
     </div>
     <div id="masterPanelContent"></div>
   `;
@@ -2006,6 +2062,7 @@ function setMasterTab(tab){
   else if(tab==="mStorage")renderMasterStorage(content);
   else if(tab==="mSkills")renderMasterSkillBook(content);
   else if(tab==="mLoja")renderMasterShop(content);
+  else if(tab==="mChat")renderMasterChat(content);
 }
 
 /* ══ PLAYERS TAB ══ */
@@ -2036,6 +2093,9 @@ function renderMasterPlayers(container){
           <div style="align-self:flex-end"><button class="secondary" id="m_btnItem">Dar Item</button></div>
         </div>
         <div class="row" style="margin-top:8px">
+          <button class="success mini" id="m_btnCreateItem">⚔️ Criar Item Completo para Player</button>
+        </div>
+        <div class="row" style="margin-top:8px">
           <button class="secondary mini" id="m_btnResetChar">↺ Resetar personagem</button>
           <button class="danger mini" id="m_btnDelete">✕ Deletar player</button>
         </div>
@@ -2052,6 +2112,7 @@ function renderMasterPlayers(container){
   };
   $('m_btnXP').onclick=()=>{masterGiveXP(sel.value,$('m_xpAmt').value,$('m_xpReason').value.trim());DB=loadDB();setMasterTab("mPlayers");renderSideRoster();};
   $('m_btnItem').onclick=()=>{const p=getPlayer(sel.value);if(!p)return;const nm=$('m_itemName').value.trim();if(!nm)return;const rar=$('m_itemRarity').value;p.inventory.unshift({id:"it_"+Math.random().toString(16).slice(2,8),name:nm,ts:Date.now(),qty:1,rarity:rar,weight:.5});p.log.unshift({ts:Date.now(),text:`Item recebido: ${nm} (${rar})`});saveDB(DB);DB=loadDB();toast("Item dado!",true);};
+  $('m_btnCreateItem').onclick=()=>{ openMasterCreateItemModal(sel.value); };;
   $('m_btnResetChar').onclick=()=>{if(confirm("Resetar?")){ masterResetCharacter(sel.value);DB=loadDB();setMasterTab("mPlayers");}};
   $('m_btnDelete').onclick=()=>{if(confirm("Deletar?")){masterDeletePlayer(sel.value);DB=loadDB();render();}};
   // Full roster
@@ -2310,6 +2371,529 @@ function openMasterNpcModal(id){
   };
 }
 function deleteMasterNpc(id){if(!confirm("Remover NPC?"))return;DB=loadDB();DB.masterNpcs=(DB.masterNpcs||[]).filter(n=>n.id!==id);saveDB(DB);setMasterTab("mNpcs");}
+
+/* ═══════════════════════════════════════════════════════════════
+   V9 — ITEM CRIADO PELO MESTRE DIRETO PARA PLAYER
+   Na aba Players, além de "Dar Item" por nome, o Mestre pode
+   criar um item completo (raridade, bônus, efeito) e ele vai
+   diretamente ao inventário do player, podendo ser equipado.
+═══════════════════════════════════════════════════════════════ */
+function openMasterCreateItemModal(targetPlayerId){
+  const {overlay,m} = modal("masterCreateItemModal",`
+    <div class="modalHeader">
+      <b class="secTitle">⚔️ Criar Item para Player</b>
+      <button class="danger mini" onclick="document.getElementById('masterCreateItemModal').remove()">✕</button>
+    </div>
+    <div class="muted mini" style="margin-bottom:12px">O item será criado e enviado direto ao inventário do player.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="display:grid;gap:8px">
+        <div><label>Nome do Item</label><input id="mci_name" placeholder="ex: Espada de Fogo, Anel da Sorte..."></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label>Categoria</label><select id="mci_cat">
+            ${['Arma','Armadura','Poção','Livro','Misc','Ingrediente','Joia','Amuleto','Anel','Elmo','Botas','Luvas'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select></div>
+          <div><label>Raridade</label><select id="mci_rar">
+            <option value="comum">Comum</option>
+            <option value="incomum">Incomum</option>
+            <option value="raro">Raro</option>
+            <option value="epico">Épico</option>
+            <option value="lendario">Lendário</option>
+          </select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><label>+Defesa</label><input id="mci_def" type="number" value="0" min="0"></div>
+          <div><label>+Vida</label><input id="mci_vida" type="number" value="0" min="0"></div>
+          <div><label>Peso (kg)</label><input id="mci_weight" type="number" value="0.5" step="0.1" min="0"></div>
+        </div>
+        <div><label>Efeito / Descrição</label><textarea id="mci_effect" rows="3" placeholder="ex: +2 Força ao atacar, cura 1d6 ao usar, imune a veneno..."></textarea></div>
+        <div><label>Lore (opcional)</label><textarea id="mci_lore" rows="2" placeholder="História do item, quem o forjou..."></textarea></div>
+      </div>
+      <div style="display:grid;gap:8px;align-content:start">
+        <div><label>Player destinatário</label><select id="mci_player" style="width:100%">
+          ${DB.players.map(p=>`<option value="${p.id}" ${p.id===targetPlayerId?'selected':''}>${escapeHTML(p.character.charName||p.username)}</option>`).join('')}
+        </select></div>
+        <div>
+          <label>Imagem (opcional)</label>
+          <div id="mci_imgPrev" style="width:100%;height:160px;border:1px dashed rgba(180,140,60,.3);border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(5,3,1,.5);margin-bottom:8px">
+            <span style="font-size:36px">⚔️</span>
+          </div>
+          <input id="mci_imgInp" type="file" accept="image/*">
+        </div>
+        <!-- Preview de raridade -->
+        <div id="mci_preview" style="padding:12px;border:1px solid rgba(180,140,60,.2);border-radius:2px;background:rgba(5,3,1,.5)">
+          <div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:6px">PREVIEW</div>
+          <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--ink)" id="mci_prevName">Nome do Item</div>
+          <div class="muted mini" style="margin-top:4px" id="mci_prevMeta">Comum • Misc</div>
+          <div style="font-size:12px;color:var(--goldLight);margin-top:4px" id="mci_prevEffect"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="secondary" onclick="document.getElementById('masterCreateItemModal').remove()">Cancelar</button>
+      <button class="success" id="mci_save">⚔️ Criar & Enviar ao Player</button>
+    </div>
+  `);
+
+  let _imgDataUrl = "";
+  m.querySelector("#mci_imgInp").onchange = async function(){
+    const f = this.files[0]; if(!f) return;
+    _imgDataUrl = await fileToDataURL(f);
+    m.querySelector("#mci_imgPrev").innerHTML = `<img src="${_imgDataUrl}" style="width:100%;height:100%;object-fit:cover">`;
+  };
+
+  // Live preview
+  function updatePreview(){
+    const nm = m.querySelector("#mci_name").value || "Nome do Item";
+    const rar = m.querySelector("#mci_rar").value;
+    const cat = m.querySelector("#mci_cat").value;
+    const eff = m.querySelector("#mci_effect").value;
+    const rarCol = {comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[rar];
+    m.querySelector("#mci_prevName").textContent = nm;
+    m.querySelector("#mci_prevName").style.color = rarCol;
+    m.querySelector("#mci_prevMeta").textContent = `${rar.charAt(0).toUpperCase()+rar.slice(1)} • ${cat}`;
+    m.querySelector("#mci_prevEffect").textContent = eff ? "⚡ " + eff.slice(0,80) : "";
+  }
+  m.querySelectorAll("input,select,textarea").forEach(el=>el.addEventListener("input",updatePreview));
+  updatePreview();
+
+  m.querySelector("#mci_save").onclick = ()=>{
+    const name = m.querySelector("#mci_name").value.trim();
+    if(!name){toast("Nome obrigatório.",false);return;}
+    const pid = m.querySelector("#mci_player").value;
+    const p = getPlayer(pid); if(!p){toast("Player não encontrado.",false);return;}
+    const item = {
+      id: "it_"+Math.random().toString(16).slice(2,8),
+      name,
+      category: m.querySelector("#mci_cat").value,
+      rarity: m.querySelector("#mci_rar").value,
+      defesa: Number(m.querySelector("#mci_def").value||0),
+      vida: Number(m.querySelector("#mci_vida").value||0),
+      weight: Number(m.querySelector("#mci_weight").value||0.5),
+      effect: m.querySelector("#mci_effect").value.trim(),
+      lore: m.querySelector("#mci_lore").value.trim(),
+      imageDataUrl: _imgDataUrl,
+      qty: 1,
+      ts: Date.now(),
+      fromMaster: true
+    };
+    DB = loadDB();
+    const pp = getPlayer(pid);
+    if(!pp.inventory) pp.inventory = [];
+    pp.inventory.unshift(item);
+    pp.log.unshift({ts:Date.now(), text:`🎁 Item recebido do Mestre: ${name} (${item.rarity})`});
+    saveDB(DB);
+    overlay.remove();
+    toast(`✅ "${name}" enviado para ${pp.character.charName||pp.username}!`,true);
+    setMasterTab("mPlayers");
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V9 — CHAT PLAYER ↔ MESTRE VIA NPC (Firebase)
+   Player vê NPCs do mestre e pode enviar mensagem.
+   Mestre vê todas as conversas e responde como o NPC.
+═══════════════════════════════════════════════════════════════ */
+
+// Garante que DB.npcChats exista
+function ensureNpcChats(){
+  if(!DB.npcChats || typeof DB.npcChats !== 'object') DB.npcChats = {};
+}
+
+// Chave única para conversa: "npcId_playerId"
+function chatKey(npcId, playerId){ return `${npcId}__${playerId}`; }
+
+function getChatMessages(npcId, playerId){
+  ensureNpcChats();
+  const key = chatKey(npcId, playerId);
+  return Array.isArray(DB.npcChats[key]) ? DB.npcChats[key] : [];
+}
+
+function addChatMessage(npcId, playerId, text, fromMaster){
+  DB = loadDB();
+  ensureNpcChats();
+  const key = chatKey(npcId, playerId);
+  if(!Array.isArray(DB.npcChats[key])) DB.npcChats[key] = [];
+  DB.npcChats[key].push({
+    id: "msg_"+Math.random().toString(16).slice(2,8),
+    text: String(text).trim(),
+    fromMaster: !!fromMaster,
+    ts: Date.now(),
+    read: fromMaster ? false : true // mensagens do player começam não lidas pelo mestre
+  });
+  // Limita histórico em 200 msgs por conversa
+  if(DB.npcChats[key].length > 200) DB.npcChats[key] = DB.npcChats[key].slice(-200);
+  saveDB(DB);
+}
+
+// Conta mensagens não lidas (para o mestre)
+function countUnreadMaster(){
+  ensureNpcChats();
+  let count = 0;
+  for(const msgs of Object.values(DB.npcChats)){
+    if(Array.isArray(msgs)) count += msgs.filter(m=>!m.fromMaster && !m.read).length;
+  }
+  return count;
+}
+
+// Marca mensagens de um player como lidas pelo mestre
+function markReadByMaster(npcId, playerId){
+  DB = loadDB();
+  ensureNpcChats();
+  const key = chatKey(npcId, playerId);
+  if(Array.isArray(DB.npcChats[key])){
+    DB.npcChats[key].forEach(m=>{ if(!m.fromMaster) m.read = true; });
+    saveDB(DB);
+  }
+}
+
+// Conta mensagens não lidas (para player — respostas do mestre)
+function countUnreadPlayer(playerId){
+  ensureNpcChats();
+  let count = 0;
+  for(const [key, msgs] of Object.entries(DB.npcChats)){
+    if(key.includes(`__${playerId}`) && Array.isArray(msgs)){
+      count += msgs.filter(m=>m.fromMaster && !m.playerRead).length;
+    }
+  }
+  return count;
+}
+
+function markReadByPlayer(npcId, playerId){
+  DB = loadDB();
+  ensureNpcChats();
+  const key = chatKey(npcId, playerId);
+  if(Array.isArray(DB.npcChats[key])){
+    DB.npcChats[key].forEach(m=>{ if(m.fromMaster) m.playerRead = true; });
+    saveDB(DB);
+  }
+}
+
+/* ── Render da lista de NPCs para chat (PLAYER) ── */
+function renderChatNpcList(player){
+  DB = loadDB();
+  const masterNpcs = (DB.masterNpcs||[]);
+  if(!masterNpcs.length){
+    return `<div class="warn" style="text-align:center;padding:24px">
+      <div style="font-size:32px;margin-bottom:8px">🎭</div>
+      <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--muted)">Nenhum NPC disponível ainda.</div>
+      <div class="muted mini" style="margin-top:6px">O Mestre precisa criar NPCs para você conversar.</div>
+    </div>`;
+  }
+
+  return masterNpcs.map(n=>{
+    const msgs = getChatMessages(n.id, player.id);
+    const unread = msgs.filter(m=>m.fromMaster && !m.playerRead).length;
+    const lastMsg = msgs.length ? msgs[msgs.length-1] : null;
+    const al = Number(n.alignment||50);
+    const rc = al>=70?"var(--ok)":al>=40?"var(--gold)":"var(--bad)";
+    const rl = ["Inimigo","Hostil","Desconfiado","Neutro","Amigável","Aliado","Devoto"][Math.min(6,Math.floor(al/15))];
+
+    return `<div style="border:1px solid rgba(180,140,60,.2);border-radius:3px;padding:14px;margin-bottom:10px;background:rgba(8,6,4,.6);transition:border-color .2s;cursor:pointer"
+      onclick="openNpcChat('${n.id}','${player.id}')"
+      onmouseover="this.style.borderColor='rgba(200,149,42,.45)'"
+      onmouseout="this.style.borderColor='rgba(180,140,60,.2)'">
+      <div style="display:flex;gap:12px;align-items:center">
+        ${n.imageDataUrl
+          ? `<img src="${n.imageDataUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3);flex-shrink:0">`
+          : `<div style="width:52px;height:52px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🎭</div>`
+        }
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:6px">
+              <b style="font-family:'Cinzel',serif;font-size:14px;color:var(--ink)">${escapeHTML(n.name)}</b>
+              ${unread>0?`<span class="npcChatNotif">${unread}</span>`:""}
+            </div>
+            <span class="pill mini" style="color:${rc};border-color:${rc}40;flex-shrink:0">${rl}</span>
+          </div>
+          <div class="muted mini">${escapeHTML(n.role||"")}${n.location?` • 📍 ${escapeHTML(n.location)}`:""}</div>
+          ${lastMsg
+            ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                ${lastMsg.fromMaster?`<b style="color:var(--goldLight)">${escapeHTML(n.name)}:</b>`:"<b>Você:</b>"}
+                ${escapeHTML(lastMsg.text.slice(0,60))}${lastMsg.text.length>60?"...":""}
+               </div>`
+            : `<div class="muted mini" style="margin-top:4px;font-style:italic">Nenhuma mensagem ainda. Clique para conversar.</div>`
+          }
+        </div>
+        <div style="font-size:20px;color:var(--muted);flex-shrink:0">💬</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ── Modal de chat com NPC (PLAYER) ── */
+function openNpcChat(npcId, playerId){
+  DB = loadDB();
+  const n = (DB.masterNpcs||[]).find(x=>x.id===npcId);
+  const p = getPlayer(playerId);
+  if(!n||!p) return;
+
+  markReadByPlayer(npcId, playerId);
+  const msgs = getChatMessages(npcId, playerId);
+
+  const existing = document.getElementById("ovNpcChat");
+  if(existing) existing.remove();
+
+  const html = `
+    <div class="overlay" id="ovNpcChat" style="z-index:70">
+      <div class="modal" style="max-width:600px">
+        <div class="modalHeader">
+          <div style="display:flex;align-items:center;gap:12px">
+            ${n.imageDataUrl?`<img src="${n.imageDataUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3)">`:'<div style="width:44px;height:44px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px">🎭</div>'}
+            <div>
+              <div style="font-family:'Cinzel',serif;font-weight:900;font-size:16px;color:var(--goldLight)">${escapeHTML(n.name)}</div>
+              <div class="muted mini">${escapeHTML(n.role||"")}${n.location?` • 📍 ${escapeHTML(n.location)}`:""}</div>
+            </div>
+          </div>
+          <button class="danger mini" onclick="document.getElementById('ovNpcChat').remove()">✕</button>
+        </div>
+        <div class="divider"></div>
+        ${n.description?`<div style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 12px;background:rgba(5,3,1,.4);border:1px solid rgba(180,140,60,.12);border-radius:2px;margin-bottom:12px">"${escapeHTML(n.description)}"</div>`:""}
+        <div class="chatScroll" id="chatMsgs">
+          ${msgs.length===0
+            ? `<div style="text-align:center;padding:24px"><span class="muted mini">Começe a conversa! O Mestre responderá como ${escapeHTML(n.name)}.</span></div>`
+            : msgs.map(msg=>renderChatBubble(msg, n, p)).join("")
+          }
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <textarea id="chatInput" placeholder="Escreva sua mensagem para ${escapeHTML(n.name)}..." rows="2" style="flex:1;min-height:60px;resize:vertical"></textarea>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button id="chatSend" style="padding:10px 18px">📨 Enviar</button>
+            <button class="secondary mini" onclick="document.getElementById('ovNpcChat').remove()">Fechar</button>
+          </div>
+        </div>
+        <div class="muted mini" style="margin-top:6px;text-align:right">Ctrl+Enter para enviar</div>
+      </div>
+    </div>`;
+
+  document.body.insertAdjacentHTML("beforeend", html);
+
+  // Scroll to bottom
+  const chatEl = document.getElementById("chatMsgs");
+  if(chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+  // Send
+  function sendMsg(){
+    const text = document.getElementById("chatInput")?.value.trim();
+    if(!text) return;
+    addChatMessage(npcId, playerId, text, false);
+    document.getElementById("chatInput").value = "";
+    // Rerender messages
+    DB = loadDB();
+    const newMsgs = getChatMessages(npcId, playerId);
+    const ce = document.getElementById("chatMsgs");
+    if(ce){
+      ce.innerHTML = newMsgs.map(m=>renderChatBubble(m, n, p)).join("");
+      ce.scrollTop = ce.scrollHeight;
+    }
+    toast(`💬 Mensagem enviada para ${n.name}!`,true);
+  }
+
+  document.getElementById("chatSend").onclick = sendMsg;
+  document.getElementById("chatInput")?.addEventListener("keydown",e=>{
+    if(e.ctrlKey && e.key==="Enter"){ e.preventDefault(); sendMsg(); }
+  });
+  document.getElementById("ovNpcChat").onclick = e=>{ if(e.target.id==="ovNpcChat") e.target.remove(); };
+}
+
+function renderChatBubble(msg, npc, player){
+  const ts = new Date(msg.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  if(msg.fromMaster){
+    return `<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+      <div class="chatBubble master">${escapeHTML(msg.text)}<div class="cb-meta">${escapeHTML(npc.name)} • ${ts}</div></div>
+    </div>`;
+  } else {
+    return `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div class="chatBubble player">${escapeHTML(msg.text)}<div class="cb-meta" style="text-align:right">${escapeHTML(player.character.charName||player.username)} • ${ts}</div></div>
+    </div>`;
+  }
+}
+
+/* ── Render do painel de chat para o MESTRE ── */
+function renderMasterChat(container){
+  DB = loadDB();
+  const masterNpcs = DB.masterNpcs || [];
+  const players = DB.players || [];
+
+  if(!masterNpcs.length){
+    container.innerHTML = `<div class="warn" style="text-align:center;padding:30px">
+      <div style="font-size:36px">🎭</div>
+      <div style="font-family:'Cinzel',serif;font-size:14px;margin-top:10px;color:var(--muted)">Crie NPCs primeiro para habilitar o chat.</div>
+    </div>`;
+    return;
+  }
+
+  // Monta lista de todas as conversas existentes
+  let allConvos = [];
+  for(const n of masterNpcs){
+    for(const p of players){
+      const msgs = getChatMessages(n.id, p.id);
+      if(msgs.length > 0){
+        const unread = msgs.filter(m=>!m.fromMaster && !m.read).length;
+        allConvos.push({npc:n, player:p, msgs, unread, lastMsg:msgs[msgs.length-1]});
+      }
+    }
+  }
+
+  // Ordena por não lidos primeiro, depois por data
+  allConvos.sort((a,b)=>{
+    if(b.unread !== a.unread) return b.unread - a.unread;
+    return (b.lastMsg?.ts||0) - (a.lastMsg?.ts||0);
+  });
+
+  const totalUnread = allConvos.reduce((s,c)=>s+c.unread, 0);
+
+  container.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="secTitle" style="margin-bottom:0">💬 Chat com Players (via NPCs)</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${totalUnread>0?`<span class="pill" style="color:var(--bad)">📨 ${totalUnread} não ${totalUnread===1?'lida':'lidas'}</span>`:""}
+        <button class="secondary mini" onclick="setMasterTab('mChat')">🔄 Atualizar</button>
+      </div>
+    </div>
+    <div class="muted mini" style="margin-bottom:14px">
+      Aqui aparecem as conversas abertas pelos players com seus NPCs. Clique em uma conversa para responder como o NPC.
+    </div>
+
+    ${allConvos.length===0
+      ? `<div style="border:1px dashed rgba(180,140,60,.2);border-radius:2px;padding:30px;text-align:center">
+          <div style="font-size:32px;margin-bottom:8px">💬</div>
+          <div class="muted mini">Nenhuma conversa iniciada ainda.<br>Os players podem conversar com NPCs na aba "Chat NPCs" da ficha deles.</div>
+         </div>`
+      : allConvos.map(c=>{
+          const ts = c.lastMsg ? new Date(c.lastMsg.ts).toLocaleString() : "";
+          return `<div style="border:1px solid ${c.unread>0?'rgba(192,57,43,.5)':'rgba(180,140,60,.18)'};border-radius:3px;padding:14px;margin-bottom:10px;background:${c.unread>0?'rgba(30,8,8,.7)':'rgba(8,6,4,.6)'};cursor:pointer;transition:all .2s"
+            onclick="openMasterChatReply('${c.npc.id}','${c.player.id}')"
+            onmouseover="this.style.borderColor='rgba(200,149,42,.45)'"
+            onmouseout="this.style.borderColor='${c.unread>0?'rgba(192,57,43,.5)':'rgba(180,140,60,.18)'}'">
+            <div style="display:flex;align-items:center;gap:12px">
+              ${c.npc.imageDataUrl?`<img src="${c.npc.imageDataUrl}" style="width:46px;height:46px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3);flex-shrink:0">`:`<div style="width:46px;height:46px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎭</div>`}
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <b style="font-family:'Cinzel',serif;font-size:14px;color:var(--ink)">${escapeHTML(c.npc.name)}</b>
+                    <span class="muted mini">com</span>
+                    <span style="font-family:'Cinzel',serif;font-size:13px;color:var(--goldLight)">${escapeHTML(c.player.character.charName||c.player.username)}</span>
+                    ${c.unread>0?`<span class="npcChatNotif">${c.unread} nova${c.unread>1?'s':''}</span>`:""}
+                  </div>
+                  <span class="muted mini">${ts}</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  ${c.lastMsg.fromMaster?`<b style="color:var(--goldLight)">${escapeHTML(c.npc.name)}:</b>`:`<b>${escapeHTML(c.player.character.charName||c.player.username)}:</b>`}
+                  ${escapeHTML(c.lastMsg.text.slice(0,70))}${c.lastMsg.text.length>70?"...":""}
+                </div>
+              </div>
+              <div style="font-size:22px;flex-shrink:0">${c.unread>0?"📨":"💬"}</div>
+            </div>
+          </div>`;
+        }).join("")
+    }
+
+    <!-- Iniciar nova conversa (mestre manda primeira mensagem) -->
+    <div style="margin-top:18px;border:1px solid rgba(200,149,42,.2);border-radius:2px;padding:14px;background:rgba(200,149,42,.04)">
+      <div class="secTitle" style="font-size:11px;margin-bottom:10px">✍️ Iniciar conversa como NPC</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:160px"><label>NPC</label><select id="mchat_npc">${masterNpcs.map(n=>`<option value="${n.id}">${escapeHTML(n.name)}</option>`).join('')}</select></div>
+        <div style="flex:1;min-width:160px"><label>Player</label><select id="mchat_player">${players.map(p=>`<option value="${p.id}">${escapeHTML(p.character.charName||p.username)}</option>`).join('')}</select></div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <textarea id="mchat_msg" placeholder="Escreva como o NPC..." rows="2" style="flex:1;min-height:60px;resize:vertical"></textarea>
+        <button id="mchat_send" style="align-self:flex-end;padding:10px 16px">Enviar</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("mchat_send")?.addEventListener("click",()=>{
+    const npcId = document.getElementById("mchat_npc")?.value;
+    const pid = document.getElementById("mchat_player")?.value;
+    const text = document.getElementById("mchat_msg")?.value.trim();
+    if(!npcId||!pid||!text){toast("Preencha NPC, player e mensagem.",false);return;}
+    addChatMessage(npcId, pid, text, true);
+    document.getElementById("mchat_msg").value = "";
+    toast("💬 Mensagem enviada!",true);
+    setMasterTab("mChat");
+  });
+}
+
+/* ── Modal de resposta do Mestre a uma conversa ── */
+function openMasterChatReply(npcId, playerId){
+  DB = loadDB();
+  const n = (DB.masterNpcs||[]).find(x=>x.id===npcId);
+  const p = getPlayer(playerId);
+  if(!n||!p) return;
+
+  markReadByMaster(npcId, playerId);
+  DB = loadDB();
+  const msgs = getChatMessages(npcId, playerId);
+
+  const existing = document.getElementById("ovMasterChat");
+  if(existing) existing.remove();
+
+  const html = `
+    <div class="overlay" id="ovMasterChat" style="z-index:70">
+      <div class="modal" style="max-width:620px">
+        <div class="modalHeader">
+          <div style="display:flex;align-items:center;gap:12px">
+            ${n.imageDataUrl?`<img src="${n.imageDataUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:2px;border:1px solid rgba(180,140,60,.3)">`:'<div style="width:44px;height:44px;border:1px dashed rgba(180,140,60,.2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px">🎭</div>'}
+            <div>
+              <div style="font-family:'Cinzel',serif;font-weight:900;font-size:15px;color:var(--goldLight)">${escapeHTML(n.name)} ↔ ${escapeHTML(p.character.charName||p.username)}</div>
+              <div class="muted mini">Você responde como <b>${escapeHTML(n.name)}</b></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="secondary mini" onclick="setMasterTab('mChat');document.getElementById('ovMasterChat').remove()">↩ Voltar</button>
+            <button class="danger mini" onclick="document.getElementById('ovMasterChat').remove()">✕</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        ${n.secret?`<div style="font-size:12px;color:rgba(200,149,42,.7);padding:7px 10px;background:rgba(139,26,26,.1);border:1px solid rgba(139,26,26,.25);border-radius:2px;margin-bottom:10px">🔒 Segredo: ${escapeHTML(n.secret)}</div>`:""}
+        <div class="chatScroll" id="masterChatMsgs">
+          ${msgs.length===0
+            ? `<div style="text-align:center;padding:20px"><span class="muted mini">Sem mensagens ainda.</span></div>`
+            : msgs.map(msg=>renderChatBubble(msg, n, p)).join("")
+          }
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <textarea id="masterChatInput" placeholder="Responda como ${escapeHTML(n.name)}..." rows="2" style="flex:1;min-height:60px;resize:vertical"></textarea>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button id="masterChatSend" style="padding:10px 18px">📨 Enviar</button>
+            <button class="secondary mini" onclick="document.getElementById('ovMasterChat').remove()">Fechar</button>
+          </div>
+        </div>
+        <div class="muted mini" style="margin-top:6px;text-align:right">Ctrl+Enter para enviar</div>
+      </div>
+    </div>`;
+
+  document.body.insertAdjacentHTML("beforeend", html);
+
+  const chatEl = document.getElementById("masterChatMsgs");
+  if(chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+  function sendReply(){
+    const text = document.getElementById("masterChatInput")?.value.trim();
+    if(!text) return;
+    addChatMessage(npcId, playerId, text, true);
+    document.getElementById("masterChatInput").value = "";
+    DB = loadDB();
+    const newMsgs = getChatMessages(npcId, playerId);
+    const ce = document.getElementById("masterChatMsgs");
+    if(ce){
+      ce.innerHTML = newMsgs.map(m=>renderChatBubble(m, n, p)).join("");
+      ce.scrollTop = ce.scrollHeight;
+    }
+    toast(`✅ Respondido como ${n.name}!`,true);
+  }
+
+  document.getElementById("masterChatSend").onclick = sendReply;
+  document.getElementById("masterChatInput")?.addEventListener("keydown",e=>{
+    if(e.ctrlKey && e.key==="Enter"){ e.preventDefault(); sendReply(); }
+  });
+  document.getElementById("ovMasterChat").onclick = e=>{ if(e.target.id==="ovMasterChat") e.target.remove(); };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V9 — RENDERIZAÇÃO DOS NPC MASTERS COM BOTÃO DE CHAT
+   Atualiza renderMasterNpcs para mostrar badge de mensagens
+═══════════════════════════════════════════════════════════════ */
 
 /* ══ MAPAS TAB ══ */
 function renderMasterMaps(container){
@@ -2838,10 +3422,16 @@ function playerBuyItem(pid, shopItemId){
   p.inventory.unshift({
     id:"it_"+Math.random().toString(16).slice(2,8),
     shopId:it.id,
-    name:it.name,rarity:it.rarity||"comum",
-    qty:1,weight:it.weight||0.5,
-    defesa:it.defesa||0,vida:it.vida||0,
-    effect:it.effect||"",ts:Date.now()
+    name:it.name,
+    category:it.category||"Misc",
+    rarity:it.rarity||"comum",
+    qty:1,
+    weight:it.weight||0.5,
+    defesa:it.defesa||0,
+    vida:it.vida||0,
+    effect:it.effect||"",
+    imageDataUrl:it.imageDataUrl||"",
+    ts:Date.now()
   });
   if(it.stock!=null&&it.stock>0){it.stock--;} 
   if(!p.character.transacoes)p.character.transacoes=[];
@@ -3407,6 +3997,7 @@ function renderPlayer(playerId, action=null){
       <button class="hubTab" data-hub="hubDados">🎲 Dados</button>
       <button class="hubTab" data-hub="hubDiario">📖 Diário</button>
       <button class="hubTab" data-hub="hubNpcs">👥 NPCs</button>
+      <button class="hubTab" data-hub="hubChat" id="tabChatBtn">💬 Chat NPCs</button>
       <button class="hubTab" data-hub="hubMapa">🗺️ Mapa</button>
       <button class="hubTab" data-hub="hubLoja" id="tabLojaBtn">🛒 Loja</button>
     </div>
@@ -3501,7 +4092,7 @@ function renderPlayer(playerId, action=null){
         <b style="font-family:'Cinzel',serif;font-size:15px">🎒 Inventário</b>
         <div class="row" style="gap:8px">
           <span class="pill">Peso: <b id="totalWeight">0</b> kg</span>
-          <button class="secondary mini" data-action="inv_add">+ Item</button>
+          <button class="secondary mini" data-action="inv_add">+ Adicionar Item</button>
         </div>
       </div>
       <div class="divider"></div>
@@ -3541,6 +4132,15 @@ function renderPlayer(playerId, action=null){
       </div>
       <div class="divider"></div>
       <div id="npcList">${renderNpcs(p)}</div>
+    </div>
+
+    <!-- ===== CHAT COM NPCs ===== -->
+    <div class="hubPanel" id="hubChat">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <b style="font-family:'Cinzel',serif;font-size:15px">💬 Conversar com NPCs</b>
+        <span class="pill mini">via Firebase</span>
+      </div>
+      <div id="chatNpcList">${renderChatNpcList(p)}</div>
     </div>
 
     <!-- ===== MAPA ===== -->
@@ -3724,18 +4324,28 @@ function renderBuffsArea(player){
 /* ========================= INVENTORY ========================= */
 function renderInventory(player){
   const inv = player.inventory || [];
-  if(!inv.length) return '<span class="muted mini">Mochila vazia.</span>';
+  if(!inv.length) return `<div style="border:1px dashed rgba(180,140,60,.2);border-radius:2px;padding:24px;text-align:center">
+    <div style="font-size:32px;margin-bottom:8px">🎒</div>
+    <span class="muted mini">Mochila vazia. Compre itens na loja ou peça ao Mestre!</span>
+  </div>`;
+
   return `<div class="invGrid">${inv.map(it=>{
     const rarity = it.rarity || "comum";
-    const icon = {comum:"📦",incomum:"💚",raro:"💙",epico:"💜",lendario:"🌟"}[rarity]||"📦";
-    return `<div class="invItem rarity-${rarity}">
-      <div>
-        <div class="iName">${icon} ${escapeHTML(it.name)}</div>
-        <div class="iMeta">${rarity.charAt(0).toUpperCase()+rarity.slice(1)} • ${it.qty||1}x • ${it.weight||0.5}kg</div>
+    const rarCol = {comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[rarity]||"var(--muted)";
+    const icon = it.imageDataUrl
+      ? `<img src="${it.imageDataUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:2px;border:1px solid ${rarCol}40;flex-shrink:0">`
+      : `<div style="width:40px;height:40px;border:1px dashed ${rarCol}40;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${{Arma:"⚔️",Armadura:"🛡️",Poção:"🧪",Livro:"📖",Joia:"💎",Amuleto:"📿",Anel:"💍",Elmo:"⛑️",Botas:"👢",Luvas:"🧤"}[it.category]||"📦"}</div>`;
+    return `<div class="invItem rarity-${rarity}" style="border-color:${rarCol}40">
+      ${icon}
+      <div style="flex:1;min-width:0">
+        <div class="iName" style="color:${rarCol}">${escapeHTML(it.name)}</div>
+        <div class="iMeta">${rarity.charAt(0).toUpperCase()+rarity.slice(1)} • ${it.qty||1}x • ${it.weight||0.5}kg${it.defesa?` • +${it.defesa}DEF`:""}${it.vida?` • +${it.vida}VID`:""}</div>
+        ${it.effect?`<div style="font-size:11px;color:var(--goldLight);margin-top:2px">⚡ ${escapeHTML(it.effect.slice(0,60))}${it.effect.length>60?"...":""}</div>`:""}
+        ${it.fromMaster?`<div style="font-size:10px;color:rgba(200,149,42,.6);margin-top:1px">🎁 Item do Mestre</div>`:""}
       </div>
-      <div class="row" style="gap:6px">
-        <button class="secondary mini" data-action="equip_item" data-iid="${it.id}" title="Equipar">⚔️</button>
-        <button class="danger mini" data-action="rm_item" data-iid="${it.id}">✕</button>
+      <div class="row" style="gap:5px;flex-shrink:0">
+        <button class="secondary mini" data-action="equip_item" data-iid="${it.id}" title="Equipar item">⚔️ Equipar</button>
+        <button class="danger mini" data-action="rm_item" data-iid="${it.id}" title="Remover">✕</button>
       </div>
     </div>`;
   }).join("")}</div>`;
@@ -4402,56 +5012,155 @@ function openConditionModal(playerId){
 function openItemModal(playerId){
   const html=`
     <div class="overlay" id="ovItem">
-      <div class="modal" style="max-width:480px">
-        <div class="modalHeader"><b style="font-family:'Cinzel',serif">+ Novo Item</b><button class="danger" id="closeItem">✕</button></div>
-        <div class="divider"></div>
-        <label>Nome</label><input id="itemName" placeholder="ex: Espada Rúnica, Poção..." style="width:100%;margin-bottom:10px">
-        <div class="row" style="gap:10px">
-          <div style="flex:1"><label>Raridade</label><select id="itemRarity" style="width:100%"><option value="comum">Comum</option><option value="incomum">Incomum</option><option value="raro">Raro</option><option value="epico">Épico</option><option value="lendario">Lendário</option></select></div>
-          <div style="flex:1"><label>Qtd</label><input id="itemQty" type="number" value="1" min="1" style="width:100%"></div>
-          <div style="flex:1"><label>Peso (kg)</label><input id="itemWeight" type="number" value="0.5" step="0.1" style="width:100%"></div>
+      <div class="modal" style="max-width:560px">
+        <div class="modalHeader">
+          <b style="font-family:'Cinzel',serif">🎒 Adicionar Item ao Inventário</b>
+          <button class="danger mini" id="closeItem">✕</button>
         </div>
-        <label style="margin-top:10px">Bônus de Defesa (ao equipar)</label><input id="itemDefesa" type="number" value="0" min="0" style="width:100%;margin-bottom:14px">
-        <div class="row" style="justify-content:flex-end"><button id="itemSave">Adicionar</button></div>
+        <div class="divider"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="display:grid;gap:8px">
+            <div><label>Nome</label><input id="itemName" placeholder="ex: Espada Rúnica, Poção..." style="width:100%"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><label>Categoria</label><select id="itemCat" style="width:100%">
+                ${['Arma','Armadura','Poção','Livro','Misc','Ingrediente','Joia','Amuleto','Anel','Elmo','Botas','Luvas'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+              </select></div>
+              <div><label>Raridade</label><select id="itemRarity" style="width:100%">
+                <option value="comum">Comum</option>
+                <option value="incomum">Incomum</option>
+                <option value="raro">Raro</option>
+                <option value="epico">Épico</option>
+                <option value="lendario">Lendário</option>
+              </select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><label>Qtd</label><input id="itemQty" type="number" value="1" min="1" style="width:100%"></div>
+              <div><label>Peso (kg)</label><input id="itemWeight" type="number" value="0.5" step="0.1" style="width:100%"></div>
+              <div><label>+Defesa</label><input id="itemDefesa" type="number" value="0" min="0" style="width:100%"></div>
+            </div>
+            <div><label>+Vida</label><input id="itemVida" type="number" value="0" min="0" style="width:100%"></div>
+            <div><label>Efeito</label><textarea id="itemEffect" rows="2" placeholder="ex: +2 Força ao atacar, cura 1d6..." style="width:100%"></textarea></div>
+          </div>
+          <div style="display:grid;gap:8px;align-content:start">
+            <div>
+              <label>Imagem (opcional)</label>
+              <div id="item_imgPrev" style="width:100%;height:130px;border:1px dashed rgba(180,140,60,.3);border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(5,3,1,.5);margin-bottom:8px">
+                <span style="font-size:32px">🎒</span>
+              </div>
+              <input id="item_imgInp" type="file" accept="image/*">
+            </div>
+            <div id="item_preview" style="padding:10px;border:1px solid rgba(180,140,60,.2);border-radius:2px;background:rgba(5,3,1,.5)">
+              <div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:4px">PREVIEW</div>
+              <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--muted)" id="item_prevName">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+          <button class="secondary" id="closeItem2">Cancelar</button>
+          <button id="itemSave">➕ Adicionar ao Inventário</button>
+        </div>
       </div>
     </div>`;
   document.body.insertAdjacentHTML("beforeend",html);
-  $("closeItem").onclick=()=>$("ovItem")?.remove();
-  $("ovItem").onclick=(e)=>{ if(e.target.id==="ovItem") $("ovItem")?.remove(); };
-  $("itemSave").onclick=()=>{
-    const name=String($("itemName").value||"").trim(); if(!name) return;
+
+  let _imgDataUrl = "";
+  document.getElementById("item_imgInp").onchange = async function(){
+    const f = this.files[0]; if(!f) return;
+    _imgDataUrl = await fileToDataURL(f);
+    document.getElementById("item_imgPrev").innerHTML = `<img src="${_imgDataUrl}" style="width:100%;height:100%;object-fit:cover">`;
+  };
+
+  function updatePreview(){
+    const nm = document.getElementById("itemName")?.value || "—";
+    const rar = document.getElementById("itemRarity")?.value || "comum";
+    const rarCol = {comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[rar];
+    const prev = document.getElementById("item_prevName");
+    if(prev){ prev.textContent = nm; prev.style.color = rarCol; }
+  }
+  document.getElementById("itemName")?.addEventListener("input",updatePreview);
+  document.getElementById("itemRarity")?.addEventListener("change",updatePreview);
+
+  const close = ()=>document.getElementById("ovItem")?.remove();
+  document.getElementById("closeItem").onclick = close;
+  document.getElementById("closeItem2").onclick = close;
+  document.getElementById("ovItem").onclick=(e)=>{ if(e.target.id==="ovItem") close(); };
+
+  document.getElementById("itemSave").onclick=()=>{
+    const name=String(document.getElementById("itemName")?.value||"").trim(); if(!name){toast("Nome obrigatório.",false);return;}
     const p=getPlayer(playerId); if(!p) return;
     p.inventory.unshift({
       id:"it_"+Math.random().toString(16).slice(2,8), name,
-      rarity:$("itemRarity").value,
-      qty:Math.max(1,Number($("itemQty").value||1)),
-      weight:Math.max(0,Number($("itemWeight").value||0.5)),
-      defesa:Number($("itemDefesa").value||0), ts:Date.now()
+      category: document.getElementById("itemCat")?.value || "Misc",
+      rarity: document.getElementById("itemRarity")?.value || "comum",
+      qty: Math.max(1,Number(document.getElementById("itemQty")?.value||1)),
+      weight: Math.max(0,Number(document.getElementById("itemWeight")?.value||0.5)),
+      defesa: Number(document.getElementById("itemDefesa")?.value||0),
+      vida: Number(document.getElementById("itemVida")?.value||0),
+      effect: String(document.getElementById("itemEffect")?.value||"").trim(),
+      imageDataUrl: _imgDataUrl,
+      ts: Date.now()
     });
     p.log.unshift({ts:Date.now(),text:`Item adicionado: ${name}`});
-    saveDB(DB); $("ovItem")?.remove(); render(); toast("Item adicionado!",true);
+    saveDB(DB); close(); render(); toast("✅ Item adicionado!",true);
   };
 }
 
 function openEquipModal(playerId, item){
-  const slotsOpts=Object.entries(SLOT_NAMES).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+  // Sugere slot baseado na categoria do item
+  const catToSlot = {
+    'Arma': 'armaPrincipal',
+    'Armadura': 'torso',
+    'Elmo': 'cabeca',
+    'Botas': 'pe',
+    'Luvas': 'maos',
+    'Anel': 'anel1',
+    'Amuleto': 'amuleto',
+    'Joia': 'amuleto',
+  };
+  const suggestedSlot = catToSlot[item.category] || 'armaPrincipal';
+
+  const slotsOpts = Object.entries(SLOT_NAMES).map(([k,v])=>
+    `<option value="${k}" ${k===suggestedSlot?'selected':''}>${v}</option>`
+  ).join("");
+
+  const rarCol = {comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[item.rarity||"comum"];
+
   const html=`
     <div class="overlay" id="ovEquip">
-      <div class="modal" style="max-width:400px">
-        <div class="modalHeader"><b style="font-family:'Cinzel',serif">Equipar: ${escapeHTML(item.name)}</b><button class="danger" id="closeEquip">✕</button></div>
+      <div class="modal" style="max-width:420px">
+        <div class="modalHeader">
+          <b style="font-family:'Cinzel',serif">⚔️ Equipar Item</b>
+          <button class="danger mini" id="closeEquip">✕</button>
+        </div>
         <div class="divider"></div>
-        <label>Slot</label><select id="equipSlot" style="width:100%;margin-bottom:14px">${slotsOpts}</select>
-        <div class="row" style="justify-content:flex-end"><button id="equipSave">Equipar</button></div>
+        <div style="display:flex;gap:12px;align-items:center;padding:12px;background:rgba(5,3,1,.5);border:1px solid ${rarCol}30;border-radius:2px;margin-bottom:14px">
+          ${item.imageDataUrl?`<img src="${item.imageDataUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:2px;flex-shrink:0">`:`<div style="width:52px;height:52px;border:1px dashed ${rarCol}40;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">⚔️</div>`}
+          <div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:${rarCol}">${escapeHTML(item.name)}</div>
+            <div class="muted mini">${(item.rarity||'comum').charAt(0).toUpperCase()+(item.rarity||'comum').slice(1)}${item.defesa?` • +${item.defesa} DEF`:""}${item.vida?` • +${item.vida} VID`:""}</div>
+            ${item.effect?`<div style="font-size:11px;color:var(--goldLight);margin-top:2px">⚡ ${escapeHTML(item.effect.slice(0,50))}</div>`:""}
+          </div>
+        </div>
+        <label>Slot de Equipamento</label>
+        <select id="equipSlot" style="width:100%;margin-bottom:14px">${slotsOpts}</select>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="secondary" id="closeEquip2">Cancelar</button>
+          <button id="equipSave">⚔️ Equipar</button>
+        </div>
       </div>
     </div>`;
   document.body.insertAdjacentHTML("beforeend",html);
-  $("closeEquip").onclick=()=>$("ovEquip")?.remove();
-  $("equipSave").onclick=()=>{
-    const slot=$("equipSlot").value;
-    const p=getPlayer(playerId); if(!p) return;
+  const close = ()=>document.getElementById("ovEquip")?.remove();
+  document.getElementById("closeEquip").onclick = close;
+  document.getElementById("closeEquip2").onclick = close;
+  document.getElementById("ovEquip").onclick=(e)=>{ if(e.target.id==="ovEquip") close(); };
+  document.getElementById("equipSave").onclick=()=>{
+    const slot = document.getElementById("equipSlot").value;
+    const p = getPlayer(playerId); if(!p) return;
     if(!p.character.equipados) p.character.equipados={};
     p.character.equipados[slot]={...item};
-    saveDB(DB); $("ovEquip")?.remove(); render(); toast(`${item.name} equipado!`,true);
+    p.log.unshift({ts:Date.now(), text:`Equipou: ${item.name} em ${SLOT_NAMES[slot]||slot}`});
+    saveDB(DB); close(); render(); toast(`✅ ${item.name} equipado!`,true);
   };
 }
 
@@ -4825,5 +5534,283 @@ try{
 </script>
 
 
+<script id="myr-loja-patch">
+/* ═══════════════════════════════════════
+   MYR LOJA PATCH v1 — Corrige renderMasterShop e openShopItemModal
+   Cole este bloco antes de </body> no seu HTML do MYR
+═══════════════════════════════════════ */
+(function(){
+  // Aguarda o script principal carregar antes de aplicar o patch
+  function applyWhenReady(){
+    if(typeof saveDB === 'undefined' || typeof escapeHTML === 'undefined'){
+      setTimeout(applyWhenReady, 50);
+      return;
+    }
+    applyMyrLojaPatch();
+  }
+  applyWhenReady();
+})();
+
+function applyMyrLojaPatch(){
+
+window.renderMasterShop = function(container){
+  DB=loadDB();
+  if(!DB.masterShop)DB.masterShop={items:[],enabled:true};
+
+  container.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="secTitle" style="margin-bottom:0">🛒 Gerenciar Loja</div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <span class="muted mini">Loja ${DB.masterShop.enabled?'aberta':'fechada'}</span>
+        <div id="shopToggleMaster" style="width:40px;height:22px;border-radius:11px;background:${DB.masterShop.enabled?'rgba(39,174,96,.6)':'rgba(100,100,100,.3)'};border:1px solid ${DB.masterShop.enabled?'rgba(39,174,96,.8)':'rgba(180,140,60,.2)'};cursor:pointer;position:relative;transition:all .2s">
+          <div style="position:absolute;top:2px;${DB.masterShop.enabled?'right:2px':'left:2px'};width:16px;height:16px;border-radius:50%;background:${DB.masterShop.enabled?'#2ecc71':'#666'};transition:all .2s"></div>
+        </div>
+        <button id="btnNewShopItem">+ Novo Item</button>
+      </div>
+    </div>
+    <div style="background:rgba(200,149,42,.06);border:1px solid rgba(200,149,42,.2);border-radius:2px;padding:12px;margin-bottom:12px">
+      <div class="secTitle" style="font-size:11px;margin-bottom:8px">🪙 Dar / Tirar Ouro</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:2;min-width:160px"><label>Player</label><select id="shop_selPlayer" style="width:100%">${DB.players.map(p=>\`<option value="\${p.id}">\${escapeHTML(p.character.charName||p.username)} (🪙\${Number(p.character.ouro||0)})</option>\`).join('')}</select></div>
+        <div style="flex:1;min-width:80px"><label>Quantidade</label><input id="shop_ouroAmt" type="number" value="50" min="1"></div>
+        <div style="display:flex;gap:5px">
+          <button id="btnDarOuro" class="success">+ Dar</button>
+          <button id="btnTirarOuro" class="danger">− Tirar</button>
+        </div>
+      </div>
+    </div>
+    <div id="shopItemsList" style="display:grid;gap:6px"></div>
+  `;
+
+  container.querySelector('#shopToggleMaster').onclick=()=>{
+    DB=loadDB();if(!DB.masterShop)DB.masterShop={items:[],enabled:true};
+    DB.masterShop.enabled=!DB.masterShop.enabled;saveDB(DB);
+    toast(`Loja ${DB.masterShop.enabled?'aberta':'fechada'}!`,DB.masterShop.enabled);
+    if(DB.masterShop.enabled && typeof showShopSign==='function') showShopSign();
+    renderMasterShop(container);
+  };
+  container.querySelector('#btnNewShopItem').onclick=()=>openShopItemModal(null,container);
+  container.querySelector('#btnDarOuro').onclick=()=>{
+    const pid=container.querySelector('#shop_selPlayer')?.value;
+    const amt=container.querySelector('#shop_ouroAmt')?.value;
+    _myrGiveOuro(pid,amt,true,container);
+  };
+  container.querySelector('#btnTirarOuro').onclick=()=>{
+    const pid=container.querySelector('#shop_selPlayer')?.value;
+    const amt=container.querySelector('#shop_ouroAmt')?.value;
+    _myrGiveOuro(pid,amt,false,container);
+  };
+  _myrRenderShopList(container);
+};
+
+window._myrGiveOuro = function(pid,amt,give,container){
+  DB=loadDB();const p=(DB.players||[]).find(x=>x.id===pid);if(!p){toast('Player não encontrado.',false);return;}
+  const amount=Math.abs(Number(amt||0));
+  if(!amount){toast('Quantidade inválida.',false);return;}
+  p.character.ouro=Math.max(0,(Number(p.character.ouro||0))+(give?amount:-amount));
+  if(!p.character.transacoes)p.character.transacoes=[];
+  p.character.transacoes.unshift({ts:Date.now(),text:`Mestre ${give?'deu':'tirou'} 🪙${amount}`});
+  p.log.unshift({ts:Date.now(),text:`🪙 Mestre ${give?'deu':'tirou'} ${amount} ouro. Total: ${p.character.ouro}`});
+  saveDB(DB);
+  toast(`${give?'🪙 Ouro dado!':'💸 Ouro removido!'}`,give);
+  if(container) renderMasterShop(container);
+};
+
+window._myrRenderShopList = function(container){
+  DB=loadDB();
+  const el=container.querySelector('#shopItemsList');if(!el)return;
+  const items=DB.masterShop?.items||[];
+  if(!items.length){
+    el.innerHTML='<div style="border:1px dashed rgba(180,140,60,.2);border-radius:2px;padding:20px;text-align:center"><span class="muted mini">Nenhum item na loja. Clique em &quot;+ Novo Item&quot; para adicionar!</span></div>';
+    return;
+  }
+  el.innerHTML=items.map(it=>{
+    const rarCol={comum:"var(--muted)",incomum:"var(--ok)",raro:"#3498db",epico:"#9b59b6",lendario:"var(--goldLight)"}[it.rarity||"comum"]||"var(--muted)";
+    return `<div style="border:1px solid ${rarCol}35;border-radius:2px;padding:11px;background:rgba(6,4,2,.6);display:flex;gap:10px;align-items:center">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <b style="font-family:'Cinzel',serif;font-size:13px;color:var(--ink)">${escapeHTML(it.name)}</b>
+          <span class="tag" style="color:${rarCol};border-color:${rarCol}40;font-size:9px">${it.rarity||'comum'}</span>
+          ${it.available===false?'<span class="tag" style="color:var(--bad);font-size:9px">Oculto</span>':''}
+          ${it.stock!=null?\`<span class="tag" style="font-size:9px">Estoque: \${it.stock}</span>\`:''}
+        </div>
+        <div class="muted mini" style="margin-top:2px">🪙 ${it.price||0} compra ${it.sellPrice?\`/ 🪙\${it.sellPrice} venda\`:''} ${it.category?\`• \${it.category}\`:''}</div>
+        ${it.description?\`<div class="muted mini" style="margin-top:2px;font-style:italic">\${escapeHTML(it.description.slice(0,60))}</div>\`:''}
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="secondary mini" data-shopvis="${it.id}">${it.available===false?'👁 Mostrar':'🙈 Ocultar'}</button>
+        <button class="secondary mini" data-shopedi="${it.id}">✏ Editar</button>
+        <button class="danger mini" data-shopdel="${it.id}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-shopvis]').forEach(btn=>{
+    btn.onclick=()=>{
+      DB=loadDB();const it2=(DB.masterShop.items||[]).find(i=>i.id===btn.dataset.shopvis);
+      if(!it2)return;it2.available=it2.available===false?true:false;saveDB(DB);
+      toast(it2.available?'Item visível!':'Item ocultado.',it2.available);
+      _myrRenderShopList(container);
+    };
+  });
+  el.querySelectorAll('[data-shopedi]').forEach(btn=>{
+    btn.onclick=()=>openShopItemModal(btn.dataset.shopedi,container);
+  });
+  el.querySelectorAll('[data-shopdel]').forEach(btn=>{
+    btn.onclick=()=>{
+      if(!confirm('Remover item da loja?'))return;
+      DB=loadDB();DB.masterShop.items=(DB.masterShop.items||[]).filter(i=>i.id!==btn.dataset.shopdel);
+      saveDB(DB);_myrRenderShopList(container);toast('Item removido.',false);
+    };
+  });
+};
+
+window.openShopItemModal = function(id, _shopContainer){
+  DB=loadDB();
+  if(!DB.masterShop)DB.masterShop={items:[],enabled:true};
+  const existing=id?DB.masterShop.items.find(i=>i.id===id):null;
+  const it=existing||{
+    id:'shop_'+Math.random().toString(16).slice(2,8),
+    name:'',category:'Misc',rarity:'comum',
+    price:10,sellPrice:0,stock:null,
+    description:'',effect:'',weight:0.5,
+    defesa:0,vida:0,available:true,imageDataUrl:''
+  };
+
+  document.getElementById('shopItemModal')?.remove();
+
+  const overlay=document.createElement('div');
+  overlay.className='overlay';
+  overlay.id='shopItemModal';
+  overlay.style.zIndex='80';
+
+  overlay.innerHTML=`
+    <div class="modal" style="max-width:760px">
+      <div class="modalHeader">
+        <b class="secTitle">${existing?'Editar':'Novo'} Item da Loja</b>
+        <button class="danger mini" id="siClose">✕ Fechar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+        <div style="display:grid;gap:10px">
+          <div><label>Nome do Item *</label><input id="siName" value="${escapeHTML(it.name)}" placeholder="ex: Poção de Cura, Espada +1..." style="width:100%"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label>Categoria</label><select id="siCat" style="width:100%">
+              ${['Arma','Armadura','Poção','Livro','Misc','Ingrediente','Joia','Serviço'].map(c=>\`<option value="\${c}" \${it.category===c?'selected':''}>\${c}</option>\`).join('')}
+            </select></div>
+            <div><label>Raridade</label><select id="siRar" style="width:100%">
+              ${['comum','incomum','raro','epico','lendario'].map(r=>\`<option value="\${r}" \${it.rarity===r?'selected':''}>\${r.charAt(0).toUpperCase()+r.slice(1)}</option>\`).join('')}
+            </select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div><label>🪙 Preço compra</label><input id="siPrice" type="number" value="${it.price||10}" min="0" style="width:100%"></div>
+            <div><label>💰 Preço venda</label><input id="siSell" type="number" value="${it.sellPrice||0}" min="0" style="width:100%"></div>
+            <div><label>Estoque (∞=vazio)</label><input id="siStock" type="number" value="${it.stock??''}" min="0" placeholder="∞" style="width:100%"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div><label>Peso kg</label><input id="siWeight" type="number" value="${it.weight||0.5}" step="0.1" min="0" style="width:100%"></div>
+            <div><label>+Defesa</label><input id="siDef" type="number" value="${it.defesa||0}" min="0" style="width:100%"></div>
+            <div><label>+Vida</label><input id="siVida" type="number" value="${it.vida||0}" min="0" style="width:100%"></div>
+          </div>
+          <div><label>Descrição</label><textarea id="siDesc" rows="3" style="width:100%">${escapeHTML(it.description||'')}</textarea></div>
+          <div><label>Efeito mecânico</label><textarea id="siEffect" rows="2" placeholder="+2 Força por 1h, Cura 2d6..." style="width:100%">${escapeHTML(it.effect||'')}</textarea></div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input id="siAvail" type="checkbox" ${it.available!==false?'checked':''}><span class="muted mini">Visível para players</span>
+          </label>
+        </div>
+        <div style="display:grid;gap:10px;align-content:start">
+          <div>
+            <label>Imagem (opcional)</label>
+            <div id="siImgPrev" style="width:100%;height:160px;border:1px dashed rgba(180,140,60,.3);border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;background:rgba(5,3,1,.5)">
+              ${it.imageDataUrl?\`<img src="\${it.imageDataUrl}" style="width:100%;height:100%;object-fit:cover">\`:'<span style="font-size:40px">🛒</span>'}
+            </div>
+            <input id="siImgInp" type="file" accept="image/*">
+          </div>
+          <div style="padding:12px;border:1px solid rgba(180,140,60,.2);border-radius:2px;background:rgba(5,3,1,.6)">
+            <div class="muted mini" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;margin-bottom:6px">PREVIEW</div>
+            <div id="siPrevName" style="font-family:'Cinzel',serif;font-size:14px;color:var(--muted)">Nome do Item</div>
+            <div id="siPrevMeta" class="muted mini" style="margin-top:3px">Comum • Misc • 🪙10</div>
+            <div id="siPrevEffect" style="font-size:11px;color:var(--goldLight);margin-top:3px"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(180,140,60,.15)">
+        <button class="secondary" id="siCancel">Cancelar</button>
+        <button class="success" id="siSave" style="padding:10px 24px;font-size:13px;letter-spacing:1px">💾 SALVAR ITEM NA LOJA</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  overlay.querySelector('#siClose').onclick=()=>overlay.remove();
+  overlay.querySelector('#siCancel').onclick=()=>overlay.remove();
+
+  let _img=it.imageDataUrl||'';
+  overlay.querySelector('#siImgInp').onchange=async function(){
+    const f=this.files[0];if(!f)return;
+    const reader=new FileReader();
+    reader.onload=()=>{_img=reader.result;overlay.querySelector('#siImgPrev').innerHTML=`<img src="${_img}" style="width:100%;height:100%;object-fit:cover">`;};
+    reader.readAsDataURL(f);
+  };
+
+  function updatePreview(){
+    const nm=overlay.querySelector('#siName').value||'Nome do Item';
+    const rar=overlay.querySelector('#siRar').value||'comum';
+    const cat=overlay.querySelector('#siCat').value||'Misc';
+    const price=overlay.querySelector('#siPrice').value||'0';
+    const eff=overlay.querySelector('#siEffect').value||'';
+    const rc={comum:'var(--muted)',incomum:'var(--ok)',raro:'#3498db',epico:'#9b59b6',lendario:'var(--goldLight)'}[rar]||'var(--muted)';
+    const pn=overlay.querySelector('#siPrevName');const pm=overlay.querySelector('#siPrevMeta');const pe=overlay.querySelector('#siPrevEffect');
+    if(pn){pn.textContent=nm;pn.style.color=rc;}
+    if(pm)pm.textContent=`${rar.charAt(0).toUpperCase()+rar.slice(1)} • ${cat} • 🪙${price}`;
+    if(pe)pe.textContent=eff?'⚡ '+eff.slice(0,60):'';
+  }
+  overlay.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('input',updatePreview));
+  updatePreview();
+
+  overlay.querySelector('#siSave').onclick=()=>{
+    const name=overlay.querySelector('#siName').value.trim();
+    if(!name){
+      alert('❌ Nome do item é obrigatório!');
+      overlay.querySelector('#siName').focus();
+      overlay.querySelector('#siName').style.borderColor='rgba(192,57,43,.8)';
+      return;
+    }
+    it.name=name;
+    it.category=overlay.querySelector('#siCat').value;
+    it.rarity=overlay.querySelector('#siRar').value;
+    it.price=Number(overlay.querySelector('#siPrice').value)||0;
+    it.sellPrice=Number(overlay.querySelector('#siSell').value)||0;
+    const stk=overlay.querySelector('#siStock').value;
+    it.stock=(stk===''||stk===null)?null:Number(stk);
+    it.weight=Number(overlay.querySelector('#siWeight').value)||0.5;
+    it.defesa=Number(overlay.querySelector('#siDef').value)||0;
+    it.vida=Number(overlay.querySelector('#siVida').value)||0;
+    it.description=overlay.querySelector('#siDesc').value.trim();
+    it.effect=overlay.querySelector('#siEffect').value.trim();
+    it.available=overlay.querySelector('#siAvail').checked;
+    it.imageDataUrl=_img;
+
+    DB=loadDB();
+    if(!DB.masterShop)DB.masterShop={items:[],enabled:true};
+    if(!Array.isArray(DB.masterShop.items))DB.masterShop.items=[];
+    const idx=DB.masterShop.items.findIndex(x=>x.id===it.id);
+    if(idx>=0){DB.masterShop.items[idx]=it;}else{DB.masterShop.items.push(it);}
+    saveDB(DB);
+    overlay.remove();
+
+    const mc=_shopContainer||document.getElementById('masterPanelContent');
+    if(mc) renderMasterShop(mc);
+
+    // Show success feedback
+    setTimeout(()=>{
+      if(typeof toast==='function') toast(`✅ "${it.name}" salvo na loja!`,true);
+    },50);
+  };
+};
+
+console.log('✅ MYR Loja Patch aplicado!');
+} // end applyMyrLojaPatch
+</script>
 </body>
 </html>
