@@ -3613,7 +3613,8 @@ function openShopItemModal(id){
     it.description=m.querySelector("#si_desc").value.trim();it.effect=m.querySelector("#si_effect").value.trim();
     it.available=m.querySelector("#si_avail").checked;
     DB=loadDB();if(!DB.masterShop)DB.masterShop={items:[],enabled:true};
-    const idx=DB.masterShop.items.findIndex(x=>x.id===it.id);
+   if(!Array.isArray(DB.masterShop.items)) DB.masterShop.items = [];
+const idx=DB.masterShop.items.findIndex(x=>x.id===it.id);
     if(idx>=0)DB.masterShop.items[idx]=it;else DB.masterShop.items.push(it);
     saveDB(DB);overlay.remove();setMasterTab("mLoja");toast("🛒 Item salvo!",true);
   };
